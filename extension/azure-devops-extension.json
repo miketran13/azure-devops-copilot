@@ -1,0 +1,144 @@
+{
+  "manifestVersion": 1,
+  "id": "devops-copilot",
+  "version": "1.0.0",
+  "name": "DevOps Copilot",
+  "description": "AI-powered copilot for Azure DevOps — search, analyze, create, and manage work items using natural language.",
+  "publisher": "MikeTtest",
+  "categories": ["Azure Boards"],
+  "tags": ["AI", "Copilot", "Work Items", "Requirements", "Azure Boards"],
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "static/icon.png"
+  },
+  "content": {
+    "details": {
+      "path": "overview.md"
+    }
+  },
+  "scopes": ["vso.work_write", "vso.project"],
+  "demands": ["api-version/7.1"],
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/YOUR-ORG/devops-copilot"
+  },
+  "contributions": [
+    {
+      "id": "copilot-hub",
+      "type": "ms.vss-web.hub",
+      "description": "AI Copilot chat interface for Azure Boards",
+      "targets": ["ms.vss-work-web.work-hub-group"],
+      "properties": {
+        "name": "Copilot",
+        "order": 99,
+        "uri": "hub/hub.html",
+        "icon": {
+          "light": "static/icon-light.png",
+          "dark": "static/icon-dark.png"
+        },
+        "supportsMobile": false
+      }
+    },
+    {
+      "id": "copilot-work-item-group",
+      "type": "ms.vss-work-web.work-item-form-group",
+      "description": "AI analysis panel on work item forms",
+      "targets": ["ms.vss-work-web.work-item-form"],
+      "properties": {
+        "name": "AI Copilot",
+        "uri": "work-item-group/work-item-group.html",
+        "height": 300
+      }
+    },
+    {
+      "id": "copilot-analyze-action",
+      "type": "ms.vss-web.action",
+      "description": "Analyze work item with AI",
+      "targets": [
+        "ms.vss-work-web.work-item-context-menu",
+        "ms.vss-work-web.work-item-toolbar-menu"
+      ],
+      "properties": {
+        "text": "Analyze with AI",
+        "title": "Analyze this work item using DevOps Copilot",
+        "icon": "static/icon-analyze.png",
+        "group": "copilot",
+        "uri": "context-menu/context-menu.html",
+        "registeredObjectId": "copilot-analyze-action"
+      }
+    },
+    {
+      "id": "copilot-testcases-action",
+      "type": "ms.vss-web.action",
+      "description": "Generate test cases with AI",
+      "targets": [
+        "ms.vss-work-web.work-item-context-menu",
+        "ms.vss-work-web.work-item-toolbar-menu"
+      ],
+      "properties": {
+        "text": "Generate Test Cases",
+        "title": "Generate test cases for this work item using DevOps Copilot",
+        "icon": "static/icon-test.png",
+        "group": "copilot",
+        "uri": "context-menu/context-menu.html",
+        "registeredObjectId": "copilot-testcases-action"
+      }
+    },
+    {
+      "id": "copilot-suggest-children-action",
+      "type": "ms.vss-web.action",
+      "description": "Suggest child items with AI",
+      "targets": [
+        "ms.vss-work-web.work-item-context-menu",
+        "ms.vss-work-web.backlog-item-menu"
+      ],
+      "properties": {
+        "text": "Suggest Child Items",
+        "title": "Suggest child user stories or tasks using DevOps Copilot",
+        "icon": "static/icon-children.png",
+        "group": "copilot",
+        "uri": "context-menu/context-menu.html",
+        "registeredObjectId": "copilot-suggest-children-action"
+      }
+    },
+    {
+      "id": "copilot-bulk-analyze-action",
+      "type": "ms.vss-web.action",
+      "description": "Bulk analyze work items with AI",
+      "targets": [
+        "ms.vss-work-web.backlog-item-menu",
+        "ms.vss-work-web.work-item-query-results-toolbar-menu"
+      ],
+      "properties": {
+        "text": "Bulk Analyze with AI",
+        "title": "Analyze selected work items using DevOps Copilot",
+        "icon": "static/icon-analyze.png",
+        "group": "copilot",
+        "uri": "context-menu/context-menu.html",
+        "registeredObjectId": "copilot-analyze-action"
+      }
+    }
+  ],
+  "files": [
+    {
+      "path": "hub",
+      "addressable": true
+    },
+    {
+      "path": "work-item-group",
+      "addressable": true
+    },
+    {
+      "path": "context-menu",
+      "addressable": true
+    },
+    {
+      "path": "static",
+      "addressable": true
+    }
+  ]
+}

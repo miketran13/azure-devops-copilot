@@ -1,0 +1,32 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      },
+      "enableLiveMetricsFilters": true
+    },
+    "logLevel": {
+      "default": "Information",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "Function": "Information"
+    }
+  },
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  },
+  "Host": {
+    "CORS": {
+      "AllowedOrigins": [
+        "https://dev.azure.com",
+        "https://*.visualstudio.com",
+        "https://localhost:3000"
+      ],
+      "SupportCredentials": true
+    }
+  }
+}

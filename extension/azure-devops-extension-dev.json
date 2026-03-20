@@ -1,0 +1,6 @@
+{
+  "id": "devops-copilot-dev",
+  "name": "DevOps Copilot (Dev)",
+  "public": false,
+  "baseUri": "https://localhost:3000"
+}

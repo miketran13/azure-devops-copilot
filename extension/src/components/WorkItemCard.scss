@@ -1,0 +1,128 @@
+.work-item-card {
+  display: flex;
+  border: 1px solid var(--palette-neutral-8, #e1dfdd);
+  border-radius: 4px;
+  background: var(--background-color, #ffffff);
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  overflow: hidden;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    border-color: var(--palette-neutral-20, #a19f9d);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--communication-background, #0078d4);
+    outline-offset: -2px;
+  }
+}
+
+.wic-type-bar {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.wic-body {
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.wic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.wic-type {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.wic-id {
+  font-size: 11px;
+  color: var(--text-secondary-color, #605e5c);
+}
+
+.wic-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wic-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.wic-state {
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 11px;
+
+  &.state-new {
+    background: #e8f4fd;
+    color: #0078d4;
+  }
+  &.state-active {
+    background: #dff6dd;
+    color: #107c10;
+  }
+  &.state-resolved {
+    background: #fff4ce;
+    color: #797673;
+  }
+  &.state-closed {
+    background: #f3f2f1;
+    color: #605e5c;
+  }
+  &.state-removed {
+    background: #fde7e9;
+    color: #a4262c;
+  }
+  &.state-default {
+    background: #f3f2f1;
+    color: #605e5c;
+  }
+}
+
+.wic-assignee {
+  color: var(--text-secondary-color, #605e5c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.wic-priority {
+  color: var(--text-secondary-color, #605e5c);
+  font-weight: 600;
+}
+
+.wic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.wic-tag {
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--palette-neutral-4, #f3f2f1);
+  color: var(--text-secondary-color, #605e5c);
+  font-size: 10px;
+}

@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DevOpsCopilot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude test project files from compilation -->
+    <Compile Remove="Tests\**" />
+    <None Remove="Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Azure Functions Isolated Worker -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" OutputItemType="Analyzer" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0" />
+
+    <!-- Microsoft Agent Framework -->
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-rc4" />
+    <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-rc4" />
+
+    <!-- Azure OpenAI -->
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+
+    <!-- Azure DevOps Client Libraries -->
+    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="20.256.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Services.Client" Version="20.256.2" />
+
+    <!-- Fix transitive dependency downgrade -->
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+
+    <!-- Monitoring -->
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.4.0" />
+
+    <!-- JWT Validation -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

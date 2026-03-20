@@ -1,0 +1,59 @@
+name: Deploy Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "extension/**"
+      - ".github/workflows/deploy-extension.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    name: Package & Publish Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        working-directory: extension
+        run: npm ci
+
+      - name: Build extension
+        working-directory: extension
+        run: npm run build
+
+      - name: Install tfx-cli
+        run: npm install -g tfx-cli
+
+      - name: Package extension
+        working-directory: extension/dist
+        run: |
+          tfx extension create \
+            --manifest-globs azure-devops-extension.json \
+            --output-path ../dist
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: devops-copilot-extension
+          path: extension/dist/*.vsix
+
+      - name: Publish to Marketplace
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: extension/dist
+        run: |
+          tfx extension publish \
+            --vsix $(ls *.vsix | head -1) \
+            --token ${{ secrets.MARKETPLACE_PAT }}
+        continue-on-error: true # Don't fail the build if marketplace publish fails
