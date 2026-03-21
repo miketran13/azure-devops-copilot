@@ -28,10 +28,15 @@ public sealed class TokenValidationService
     /// </summary>
     public bool ValidateAppToken(string? appToken)
     {
-        // If no shared secret is configured, skip validation (development mode)
+        // If no shared secret is configured, skip validation (development mode only).
+        // In production, Extension:SharedSecret MUST be set via Key Vault to enforce
+        // that requests originate from the published extension.
         if (string.IsNullOrEmpty(_sharedSecret))
         {
-            _logger.LogWarning("Extension:SharedSecret not configured — skipping app token validation (dev mode).");
+            _logger.LogWarning(
+                "Extension:SharedSecret is not configured. App token validation is DISABLED. " +
+                "Set the 'extension-shared-secret' Key Vault secret and the 'Extension__SharedSecret' " +
+                "app setting to enforce request origin validation in production.");
             return true;
         }
 

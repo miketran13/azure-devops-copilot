@@ -26,6 +26,9 @@ param openAiModelVersion string = '2024-08-06'
 @allowed(['EP1', 'EP2', 'EP3'])
 param functionPlanSku string = 'EP1'
 
+@description('Enable Key Vault purge protection (strongly recommended for production to prevent permanent data loss)')
+param enablePurgeProtection bool = false
+
 // ─── Storage Account ───────────────────────────────────────
 
 module storage 'modules/storage.bicep' = {
@@ -53,6 +56,7 @@ module keyVault 'modules/key-vault.bicep' = {
   params: {
     location: location
     baseName: baseName
+    enablePurgeProtection: enablePurgeProtection
   }
 }
 
@@ -77,7 +81,7 @@ module functionApp 'modules/function-app.bicep' = {
     location: location
     baseName: baseName
     planSku: functionPlanSku
-    storageConnectionString: storage.outputs.connectionString
+    storageAccountName: storage.outputs.name
     appInsightsConnectionString: monitoring.outputs.connectionString
     openAiEndpoint: openAi.outputs.endpoint
     openAiDeploymentName: openAiDeploymentName
@@ -91,6 +95,16 @@ module kvAccess 'modules/key-vault-access.bicep' = {
   name: 'kvAccess'
   params: {
     keyVaultName: keyVault.outputs.name
+    principalId: functionApp.outputs.principalId
+  }
+}
+
+// ─── Storage access for Function App (Managed Identity) ────
+
+module storageAccess 'modules/storage-access.bicep' = {
+  name: 'storageAccess'
+  params: {
+    storageAccountName: storage.outputs.name
     principalId: functionApp.outputs.principalId
   }
 }

@@ -3,7 +3,7 @@
 param location string
 param baseName string
 param planSku string
-param storageConnectionString string
+param storageAccountName string
 param appInsightsConnectionString string
 param openAiEndpoint string
 param openAiDeploymentName string
@@ -51,8 +51,8 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       }
       appSettings: [
         {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -78,8 +78,31 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'AzureOpenAI__ApiKey'
           value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=openai-api-key)'
         }
+        {
+          name: 'Extension__SharedSecret'
+          value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=extension-shared-secret)'
+        }
       ]
     }
+  }
+}
+
+// ─── Disable basic authentication for SCM (Kudu) and FTP ───
+// Forces deployment to use OIDC/managed identity; prevents credential-based access.
+
+resource scmBasicAuthPolicy 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  name: 'scm'
+  parent: functionApp
+  properties: {
+    allow: false
+  }
+}
+
+resource ftpBasicAuthPolicy 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  name: 'ftp'
+  parent: functionApp
+  properties: {
+    allow: false
   }
 }
 

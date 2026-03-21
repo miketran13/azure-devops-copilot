@@ -3,6 +3,9 @@
 param location string
 param baseName string
 
+@description('Enable purge protection (recommended for production to prevent accidental permanent deletion)')
+param enablePurgeProtection bool = false
+
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: '${baseName}-kv'
   location: location
@@ -14,8 +17,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     tenantId: subscription().tenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
-    softDeleteRetentionInDays: 7
-    enablePurgeProtection: false // Set to true in production
+    softDeleteRetentionInDays: 90
+    enablePurgeProtection: enablePurgeProtection
   }
 }
 
