@@ -1,0 +1,33 @@
+MIT License
+
+Copyright (c) 2025 Mike Tran
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+PRODUCTION USE NOTICE: This project uses pre-release dependencies, including
+Microsoft.Extensions.AI.Agents (1.0.0-rc4) which is a release candidate and
+may contain breaking changes. Before deploying to production:
+
+- Pin all dependency versions and test thoroughly
+- Review Azure OpenAI usage limits and costs
+- Evaluate security implications of AI-generated content
+- Ensure compliance with your organization's policies on AI tooling
+- The maintainers assume no liability for production incidents

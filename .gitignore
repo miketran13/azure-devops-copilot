@@ -1,0 +1,58 @@
+# =========================
+# .NET / C#
+# =========================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.nupkg
+project.lock.json
+*.nuget.props
+*.nuget.targets
+local.settings.json
+
+# =========================
+# Node / TypeScript
+# =========================
+node_modules/
+dist/
+*.js.map
+.npm
+.eslintcache
+
+# =========================
+# Build Outputs
+# =========================
+publish/
+out/
+*.vsix
+
+# =========================
+# IDE
+# =========================
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.vscode/launch.json
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+/docs/private

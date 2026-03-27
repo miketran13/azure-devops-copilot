@@ -1,0 +1,7 @@
+Tests/
+*.csproj
+*.sln
+.git/
+.vscode/
+local.settings.json
+obj/

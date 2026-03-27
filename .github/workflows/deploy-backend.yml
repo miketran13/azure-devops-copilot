@@ -1,0 +1,289 @@
+name: Deploy Backend
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_FUNCTIONAPP_NAME: devopscopilot-func
+  DOTNET_VERSION: "9.0.x"
+  FUNCTION_PLAN_SKU: Y1
+
+jobs:
+  deploy-infra:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    # Run when triggered manually, or when CI passed on main
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    outputs:
+      functionAppName: ${{ steps.deploy.outputs.functionAppName }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Check deployment permissions
+        # The service principal needs Owner or User Access Administrator on the resource group
+        # because the Bicep templates create RBAC role assignments (storage + key vault access).
+        # Contributor alone is NOT sufficient.
+        run: |
+          RG="${{ vars.RESOURCE_GROUP }}"
+          CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+          SUB_ID=$(az account show --query id -o tsv)
+          RG_SCOPE="/subscriptions/$SUB_ID/resourceGroups/$RG"
+
+          # Get the object ID of the service principal from its app/client ID
+          SP_OID=$(az ad sp show --id "$CLIENT_ID" --query id -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$SP_OID" ]; then
+            echo "⚠️  Could not resolve service principal object ID for client $CLIENT_ID"
+            echo "    Skipping role check — deployment may fail if permissions are insufficient."
+            exit 0
+          fi
+
+          echo "Service principal object ID: $SP_OID"
+
+          # Check if this specific SP has Owner or User Access Administrator on the resource group
+          ROLE_CHECK=$(az role assignment list \
+            --scope "$RG_SCOPE" \
+            --assignee "$SP_OID" \
+            --query "[?contains(['Owner','User Access Administrator'], roleDefinitionName)].roleDefinitionName" \
+            -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$ROLE_CHECK" ]; then
+            echo ""
+            echo "❌ PERMISSION ERROR:"
+            echo "   Service principal '$CLIENT_ID' (OID: $SP_OID) does NOT have"
+            echo "   Owner or User Access Administrator on resource group '$RG'."
+            echo ""
+            echo "   The Bicep templates assign RBAC roles to the Function App's managed identity"
+            echo "   (storage blob/queue/table access and Key Vault access)."
+            echo "   Writing role assignments requires Microsoft.Authorization/roleAssignments/write,"
+            echo "   which is only included in Owner or User Access Administrator — NOT Contributor."
+            echo ""
+            echo "   FIX — run this once from an account with Owner on the subscription/resource group:"
+            echo ""
+            echo "   az role assignment create \\"
+            echo "     --role 'Owner' \\"
+            echo "     --assignee '$SP_OID' \\"
+            echo "     --scope '$RG_SCOPE'"
+            echo ""
+            exit 1
+          fi
+
+          echo "✅ Permission check passed: $ROLE_CHECK"
+
+      - name: Remove Function App and Plan if SKU mismatch
+        # Azure won't move a Function App between incompatible plan types (e.g. ElasticPremium → FlexConsumption).
+        # We check two things:
+        #   1. What plan the function app is CURRENTLY on — and delete it if that plan's SKU is not FC1
+        #   2. Whether the named target plan exists with the wrong SKU — and delete it too
+        # This handles all cases: app on old plan, orphaned old plan, partial previous cleanup.
+        run: |
+          RG="${{ vars.RESOURCE_GROUP }}"
+          FUNC_NAME="devopscopilot-func"
+          PLAN_NAME="devopscopilot-plan"
+          TARGET_SKU="Y1"
+          DELETED=false
+
+          # Step 1: Check the plan the function app is currently associated with
+          CURRENT_PLAN_ID=$(az functionapp show --name "$FUNC_NAME" --resource-group "$RG" \
+            --query "serverFarmId" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$CURRENT_PLAN_ID" ]; then
+            CURRENT_APP_PLAN_SKU=$(az appservice plan show --ids "$CURRENT_PLAN_ID" \
+              --query "sku.name" -o tsv 2>/dev/null || echo "")
+            echo "Function app exists on plan SKU: ${CURRENT_APP_PLAN_SKU:-unknown}"
+
+            if [ -n "$CURRENT_APP_PLAN_SKU" ] && [ "$CURRENT_APP_PLAN_SKU" != "$TARGET_SKU" ]; then
+              echo "App is on wrong plan SKU ($CURRENT_APP_PLAN_SKU), deleting function app..."
+              az functionapp delete --name "$FUNC_NAME" --resource-group "$RG" --yes 2>/dev/null || true
+              echo "Deleting old plan (id: $CURRENT_PLAN_ID)..."
+              az appservice plan delete --ids "$CURRENT_PLAN_ID" --yes 2>/dev/null || true
+              DELETED=true
+            fi
+          else
+            echo "Function app does not exist yet."
+          fi
+
+          # Step 2: Also delete the named target plan if it exists with wrong SKU (orphan from previous run)
+          CURRENT_PLAN_SKU=$(az appservice plan show --name "$PLAN_NAME" --resource-group "$RG" \
+            --query "sku.name" -o tsv 2>/dev/null || echo "")
+
+          if [ -n "$CURRENT_PLAN_SKU" ] && [ "$CURRENT_PLAN_SKU" != "$TARGET_SKU" ]; then
+            echo "Named plan $PLAN_NAME has wrong SKU ($CURRENT_PLAN_SKU), deleting..."
+            az appservice plan delete --name "$PLAN_NAME" --resource-group "$RG" --yes 2>/dev/null || true
+            DELETED=true
+          fi
+
+          if [ "$DELETED" = true ]; then
+            echo "Cleanup complete. Bicep will recreate with Consumption (Y1)."
+          else
+            echo "No cleanup needed — resources are compatible or don't exist yet."
+          fi
+
+      - name: Deploy Bicep
+        id: deploy
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: ${{ vars.RESOURCE_GROUP }}
+          template: ./infra/main.bicep
+          parameters: >
+            ./infra/parameters/${{ vars.ENVIRONMENT || 'dev' }}.bicepparam
+            azureDevOpsOrgUrl=${{ vars.AZURE_DEVOPS_ORG_URL }}
+            corsAllowedOrigins="${{ vars.CORS_ALLOWED_ORIGINS }}"
+            extensionPublisherId=${{ vars.EXTENSION_PUBLISHER_ID }}
+            defaultModelDeployment=${{ vars.OPENAI_DEFAULT_MODEL || 'gpt-4o-mini' }}
+            defaultModelDisplayName="${{ vars.OPENAI_DEFAULT_MODEL_DISPLAY || 'GPT-4o Mini' }}"
+            defaultModelDescription="${{ vars.OPENAI_DEFAULT_MODEL_DESC || 'Fast and cost-effective for everyday tasks' }}"
+            secondaryModelDeployment=${{ vars.OPENAI_SECONDARY_MODEL || 'gpt-4o' }}
+            secondaryModelDisplayName="${{ vars.OPENAI_SECONDARY_MODEL_DISPLAY || 'GPT-4o' }}"
+            secondaryModelDescription="${{ vars.OPENAI_SECONDARY_MODEL_DESC || 'Most capable model for complex analysis' }}"
+          failOnStdErr: false
+        # Required GitHub Actions variables (Settings → Secrets and variables → Actions → Variables):
+        #   AZURE_DEVOPS_ORG_URL                — e.g. https://dev.azure.com/myorg
+        #   EXTENSION_PUBLISHER_ID              — your Marketplace publisher ID, e.g. MikeDemo
+        #   CORS_ALLOWED_ORIGINS                — comma-separated origins
+        #   OPENAI_DEFAULT_MODEL                — default model deployment name, e.g. gpt-4o-mini
+        #   OPENAI_DEFAULT_MODEL_DISPLAY        — default model display name, e.g. GPT-4o Mini
+        #   OPENAI_DEFAULT_MODEL_DESC           — default model description
+        #   OPENAI_SECONDARY_MODEL              — secondary model deployment name, e.g. gpt-4o
+        #   OPENAI_SECONDARY_MODEL_DISPLAY      — secondary model display name, e.g. GPT-4o
+        #   OPENAI_SECONDARY_MODEL_DESC         — secondary model description
+
+  deploy-app:
+    name: Deploy Function App
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build & Publish
+        run: dotnet publish backend/DevOpsCopilot.Functions.csproj -c Release -r linux-x64 --no-self-contained -o ./publish
+
+      - name: Package as zip
+        run: |
+          cd ./publish
+          zip -r ../function-app.zip .
+          cd ..
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions
+        # Linux Consumption: upload zip to blob storage and set WEBSITE_RUN_FROM_PACKAGE to the SAS URL.
+        # This bypasses Kudu entirely, avoiding 400 Bad Request errors from Oryx remote build attempts.
+        run: |
+          FUNC_NAME="${{ needs.deploy-infra.outputs.functionAppName || env.AZURE_FUNCTIONAPP_NAME }}"
+          RG="${{ vars.RESOURCE_GROUP }}"
+
+          # Get the storage account connection string from the function app settings
+          STORAGE_CONN=$(az functionapp config appsettings list \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --query "[?name=='AzureWebJobsStorage'].value" -o tsv)
+
+          # Extract storage account name from connection string
+          STORAGE_ACCOUNT=$(echo "$STORAGE_CONN" | grep -oP 'AccountName=\K[^;]+')
+
+          CONTAINER="function-releases"
+          BLOB_NAME="function-app-$(date +%Y%m%d%H%M%S).zip"
+
+          # Create the container if it doesn't exist
+          az storage container create \
+            --name "$CONTAINER" \
+            --connection-string "$STORAGE_CONN" \
+            2>/dev/null || true
+
+          # Upload the zip
+          az storage blob upload \
+            --container-name "$CONTAINER" \
+            --name "$BLOB_NAME" \
+            --file ./function-app.zip \
+            --connection-string "$STORAGE_CONN" \
+            --overwrite
+
+          # Generate a SAS URL valid for 365 days
+          EXPIRY=$(date -u -d "+365 days" '+%Y-%m-%dT%H:%MZ')
+          SAS_TOKEN=$(az storage blob generate-sas \
+            --container-name "$CONTAINER" \
+            --name "$BLOB_NAME" \
+            --permissions r \
+            --expiry "$EXPIRY" \
+            --connection-string "$STORAGE_CONN" \
+            -o tsv)
+
+          BLOB_URL="https://${STORAGE_ACCOUNT}.blob.core.windows.net/${CONTAINER}/${BLOB_NAME}?${SAS_TOKEN}"
+
+          # Set the function app to run from the uploaded package
+          az functionapp config appsettings set \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --settings "WEBSITE_RUN_FROM_PACKAGE=$BLOB_URL"
+
+          echo "Deployed $BLOB_NAME to $STORAGE_ACCOUNT/$CONTAINER"
+
+      - name: Restart and verify function app health
+        # After zip deploy, restart the app to force Key Vault secret resolution.
+        # Key Vault managed identity access can take 30-60s to propagate after Bicep deploys it.
+        run: |
+          FUNC_NAME="${{ needs.deploy-infra.outputs.functionAppName || env.AZURE_FUNCTIONAPP_NAME }}"
+          RG="${{ vars.RESOURCE_GROUP }}"
+
+          echo "Restarting function app to ensure Key Vault references resolve..."
+          az functionapp restart --name "$FUNC_NAME" --resource-group "$RG"
+
+          echo "Waiting 60s for function host to initialize..."
+          sleep 60
+
+          echo "=== Function app state ==="
+          az functionapp show \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --query "{state:state, availabilityState:availabilityState, hostNames:hostNames}" \
+            -o json
+
+          echo "=== App settings (names only, not values) ==="
+          az functionapp config appsettings list \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --query "[].name" \
+            -o tsv
+
+          echo "=== Discovered functions ==="
+          az functionapp function list \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --query "[].{name:name, invokeUrl:invokeUrlTemplate}" \
+            -o table 2>/dev/null || echo "(no functions listed — host may still be starting)"
+
+          echo "=== Recent host logs (last 50 lines) ==="
+          az webapp log download \
+            --name "$FUNC_NAME" \
+            --resource-group "$RG" \
+            --log-file /tmp/app-logs.zip 2>/dev/null && \
+            unzip -p /tmp/app-logs.zip "LogFiles/Application/Functions/Host/*.log" 2>/dev/null | tail -50 || \
+            echo "(log download not available — check Application Insights for startup errors)"

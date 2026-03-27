@@ -1,0 +1,30 @@
+// Azure Key Vault for secrets management
+
+param location string
+param baseName string
+
+@description('Enable purge protection (recommended for production to prevent accidental permanent deletion)')
+param enablePurgeProtection bool = false
+
+// Key Vault names must be globally unique, 3-24 chars, alphanumeric + hyphens.
+// Combine baseName with a deterministic unique suffix derived from the resource group.
+var vaultName = take('${baseName}-kv-${uniqueString(resourceGroup().id)}', 24)
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
+  name: vaultName
+  location: location
+  properties: {
+    sku: {
+      family: 'A'
+      name: 'standard'
+    }
+    tenantId: subscription().tenantId
+    enableRbacAuthorization: true
+    enableSoftDelete: true
+    softDeleteRetentionInDays: 90
+    enablePurgeProtection: enablePurgeProtection
+  }
+}
+
+output name string = keyVault.name
+output uri string = keyVault.properties.vaultUri

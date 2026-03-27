@@ -1,0 +1,87 @@
+{
+  "fieldMappings": [
+    {
+      "referenceName": "Microsoft.VSTS.Scheduling.StoryPoints",
+      "displayName": "Story Points",
+      "shortName": "storyPoints",
+      "type": "double",
+      "workItemTypes": ["User Story"],
+      "includeInSearch": true,
+      "includeInDisplay": true
+    },
+    {
+      "referenceName": "Microsoft.VSTS.Scheduling.Effort",
+      "displayName": "Effort",
+      "shortName": "effort",
+      "type": "double",
+      "workItemTypes": ["Feature", "Epic"],
+      "includeInSearch": true,
+      "includeInDisplay": true
+    },
+    {
+      "referenceName": "Microsoft.VSTS.Common.ValueArea",
+      "displayName": "Value Area",
+      "shortName": "valueArea",
+      "type": "string",
+      "workItemTypes": ["User Story", "Feature", "Epic"],
+      "includeInSearch": false,
+      "includeInDisplay": true
+    },
+    {
+      "referenceName": "Microsoft.VSTS.Common.AcceptanceCriteria",
+      "displayName": "Acceptance Criteria",
+      "shortName": "acceptanceCriteria",
+      "type": "string",
+      "workItemTypes": ["User Story"],
+      "includeInSearch": false,
+      "includeInDisplay": true
+    }
+  ],
+  "autoDiscoverFields": false,
+  "excludeFieldPrefixes": [
+    "WEF_",
+    "System.Watermark",
+    "System.Rev",
+    "System.AuthorizedAs"
+  ],
+  "definitionOfDone": {
+    "rules": [
+      {
+        "name": "HasAcceptanceCriteria",
+        "description": "Work item must have acceptance criteria defined",
+        "field": "Microsoft.VSTS.Common.AcceptanceCriteria",
+        "condition": "notEmpty",
+        "appliesTo": ["User Story", "Bug"]
+      },
+      {
+        "name": "HasStoryPoints",
+        "description": "Work item must have story points estimated",
+        "field": "Microsoft.VSTS.Scheduling.StoryPoints",
+        "condition": "greaterThan",
+        "value": 0,
+        "appliesTo": ["User Story"]
+      },
+      {
+        "name": "HasAssignee",
+        "description": "Work item must be assigned to a team member",
+        "field": "System.AssignedTo",
+        "condition": "notEmpty",
+        "appliesTo": ["User Story", "Bug", "Task"]
+      },
+      {
+        "name": "HasAreaPath",
+        "description": "Work item must have a specific area path (not root)",
+        "field": "System.AreaPath",
+        "condition": "notDefault",
+        "appliesTo": ["User Story", "Bug", "Task"]
+      },
+      {
+        "name": "HasIteration",
+        "description": "Work item must be assigned to an iteration/sprint",
+        "field": "System.IterationPath",
+        "condition": "notDefault",
+        "appliesTo": ["User Story", "Bug", "Task"]
+      }
+    ]
+  }
+}

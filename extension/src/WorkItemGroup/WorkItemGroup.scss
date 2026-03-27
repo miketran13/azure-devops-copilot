@@ -1,0 +1,239 @@
+.wig-container {
+  padding: 8px;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.wig-action-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--palette-neutral-8, #e1dfdd);
+  border-radius: 4px;
+  background: var(--background-color, #ffffff);
+  color: var(--text-primary-color, #323130);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: var(--palette-neutral-4, #f3f2f1);
+    border-color: var(--communication-background, #0078d4);
+  }
+
+  &.active {
+    border-color: var(--communication-background, #0078d4);
+    background: var(--communication-tint-10, #e5f1fb);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.wig-chat-btn {
+  margin-left: auto;
+}
+
+.wig-loading {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary-color, #605e5c);
+  font-size: 13px;
+}
+
+.wig-loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--text-secondary-color, #605e5c);
+  font-size: 12px;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--palette-neutral-8, #e1dfdd);
+  border-top-color: var(--communication-background, #0078d4);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wig-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-secondary-color, #605e5c);
+  font-size: 12px;
+}
+
+.wig-result {
+  border-top: 1px solid var(--palette-neutral-8, #e1dfdd);
+  padding-top: 8px;
+  max-height: 600px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.wig-result-content {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ─── Inline Chat ─── */
+
+.wig-chat {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--palette-neutral-8, #e1dfdd);
+  flex: 1;
+  min-height: 0;
+}
+
+.wig-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 800px;
+  min-height: 300px;
+  padding: 8px 0;
+}
+
+.wig-chat-hint {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary-color, #605e5c);
+  background: var(--palette-neutral-4, #f3f2f1);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.wig-chat-msg {
+  padding: 4px 0;
+}
+
+.wig-chat-role {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary-color, #605e5c);
+  margin-bottom: 2px;
+}
+
+.wig-chat-content {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.wig-chat-user .wig-chat-content {
+  background: var(--communication-background, #0078d4);
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.wig-chat-assistant .wig-chat-content {
+  background: var(--palette-neutral-4, #f3f2f1);
+  color: var(--text-primary-color, #323130);
+  border-bottom-left-radius: 2px;
+}
+
+.wig-chat-typing {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--palette-neutral-4, #f3f2f1);
+  border-radius: 8px;
+  width: fit-content;
+
+  span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-secondary-color, #605e5c);
+    animation: typingDot 1.2s infinite ease-in-out;
+
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+.wig-chat-input-area {
+  display: flex;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--palette-neutral-8, #e1dfdd);
+  margin-top: 4px;
+}
+
+.wig-chat-input {
+  flex: 1;
+  border: 1px solid var(--palette-neutral-8, #e1dfdd);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: none;
+  background: var(--background-color, #ffffff);
+  color: var(--text-primary-color, #323130);
+  line-height: 1.4;
+
+  &:focus {
+    outline: none;
+    border-color: var(--communication-background, #0078d4);
+  }
+
+  &::placeholder {
+    color: var(--text-secondary-color, #605e5c);
+  }
+}
+
+.wig-chat-send {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  background: var(--communication-background, #0078d4);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-end;
+  transition: background-color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--communication-shade-10, #106ebe);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}

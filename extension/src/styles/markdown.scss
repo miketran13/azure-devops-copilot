@@ -1,0 +1,181 @@
+/* ─── Shared markdown content styles ─── */
+/* Applied to any container with class "md-content" */
+
+.md-content {
+  font-size: 13px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  /* ─── Headings ─── */
+  h1, h2, h3, h4, h5, h6 {
+    margin: 12px 0 6px;
+    line-height: 1.3;
+    font-weight: 600;
+    &:first-child { margin-top: 0; }
+  }
+  h1 { font-size: 20px; }
+  h2 { font-size: 17px; }
+  h3 { font-size: 15px; }
+  h4, h5, h6 { font-size: 13px; }
+
+  /* ─── Paragraphs ─── */
+  p {
+    margin: 0 0 8px;
+    &:last-child { margin-bottom: 0; }
+  }
+
+  /* ─── Lists ─── */
+  ul, ol {
+    margin: 4px 0 8px;
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 2px;
+    &::marker {
+      color: var(--text-secondary-color, #605e5c);
+    }
+  }
+  li > ul, li > ol {
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+
+  /* ─── Inline code ─── */
+  code {
+    background: rgba(0, 0, 0, 0.07);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+    font-size: 12px;
+  }
+
+  /* ─── Code blocks ─── */
+  pre {
+    background: var(--palette-neutral-4, #f3f2f1);
+    border: 1px solid var(--palette-neutral-8, #e1dfdd);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.45;
+
+    code {
+      background: none;
+      padding: 0;
+      border-radius: 0;
+      font-size: inherit;
+    }
+  }
+
+  /* ─── Tables ─── */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 12px;
+  }
+  th, td {
+    border: 1px solid var(--palette-neutral-8, #e1dfdd);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--palette-neutral-4, #f3f2f1);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary-color, #605e5c);
+  }
+  tr:nth-child(even) {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  tr:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  /* ─── Blockquotes ─── */
+  blockquote {
+    margin: 8px 0;
+    padding: 4px 12px;
+    border-left: 3px solid var(--communication-background, #0078d4);
+    color: var(--text-secondary-color, #605e5c);
+    background: rgba(0, 120, 212, 0.04);
+    border-radius: 0 4px 4px 0;
+
+    p { margin-bottom: 4px; }
+  }
+
+  /* ─── Horizontal rules ─── */
+  hr {
+    border: none;
+    border-top: 1px solid var(--palette-neutral-8, #e1dfdd);
+    margin: 12px 0;
+  }
+
+  /* ─── Links ─── */
+  a {
+    color: var(--communication-foreground, #0078d4);
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+
+  /* ─── Stat bars (auto-injected for % values in tables) ─── */
+  .stat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-bar {
+    height: 4px;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* ─── Bold / Italic ─── */
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  /* ─── Images (rare, but just in case) ─── */
+  img {
+    max-width: 100%;
+    border-radius: 4px;
+  }
+}
+
+/* ─── User bubble overrides (light text on blue) ─── */
+.message-bubble.user .md-content {
+  code {
+    background: rgba(255, 255, 255, 0.2);
+    color: inherit;
+  }
+  pre {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    code { background: none; }
+  }
+  a { color: #b4d6fa; }
+  th {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  td, th {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  blockquote {
+    border-left-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+  }
+  hr { border-top-color: rgba(255, 255, 255, 0.2); }
+}

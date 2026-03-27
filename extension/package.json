@@ -1,0 +1,47 @@
+{
+  "name": "devops-copilot-extension",
+  "version": "1.0.0",
+  "description": "AI-powered copilot for Azure DevOps work item management",
+  "private": true,
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack serve --mode development",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "version:bump": "node scripts/bump-version.js",
+    "package": "node scripts/bump-version.js && npm run build && cd dist && npx tfx-cli extension create --manifest-globs azure-devops-extension.json --output-path .",
+    "package:dev": "node scripts/bump-version.js --local && npm run build && cd dist && npx tfx-cli extension create --manifest-globs azure-devops-extension.json --overrides-file ../azure-devops-extension-dev.json --output-path ."
+  },
+  "dependencies": {
+    "@copilotkit/react-core": "^1.54.0",
+    "@copilotkit/react-ui": "^1.54.0",
+    "@fluentui/react-components": "^9.73.4",
+    "@fluentui/react-icons": "^2.0.321",
+    "ajv": "^8.18.0",
+    "azure-devops-extension-api": "^4.269.0",
+    "azure-devops-extension-sdk": "^4.2.0",
+    "azure-devops-ui": "^2.167.83",
+    "marked": "^17.0.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "copy-webpack-plugin": "^12.0.2",
+    "css-loader": "^7.1.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "mini-css-extract-plugin": "^2.9.0",
+    "sass": "^1.77.0",
+    "sass-loader": "^14.2.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.5.0",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.2.3"
+  }
+}

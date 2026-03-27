@@ -1,0 +1,43 @@
+{
+  "name": "DevOps Copilot Dev Environment",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "dotnet restore backend/DevOpsCopilot.Functions.csproj && cd extension && npm install && npm install -g tfx-cli && npm install -g azure-functions-core-tools@4 --unsafe-perm true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-azuretools.vscode-azurefunctions",
+        "ms-azuretools.vscode-bicep",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[csharp]": {
+          "editor.defaultFormatter": "ms-dotnettools.csharp"
+        }
+      }
+    }
+  },
+  "forwardPorts": [7071, 3000],
+  "portsAttributes": {
+    "7071": {
+      "label": "Azure Functions Backend",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Extension Dev Server",
+      "onAutoForward": "notify"
+    }
+  }
+}

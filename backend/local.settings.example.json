@@ -1,0 +1,20 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AzureOpenAI__Endpoint": "https://YOUR-RESOURCE.openai.azure.com/",
+    "AzureOpenAI__DeploymentName": "gpt-4o",
+    "AzureOpenAI__ApiKey": "YOUR-AZURE-OPENAI-API-KEY",
+    "AzureDevOps__DefaultOrganizationUrl": "https://dev.azure.com/YOUR-ORG",
+    "AzureDevOps__Pat": "YOUR-AZURE-DEVOPS-PAT",
+    "Extension__SharedSecret": "",
+    "Memory__Provider": "localFile",
+    "Memory__LocalFilePath": "./sessions",
+    "Cors__AllowedOrigins": "https://dev.azure.com,https://*.visualstudio.com,https://localhost:3000"
+  },
+  "Host": {
+    "CORS": "https://localhost:3000,https://dev.azure.com,https://*.visualstudio.com",
+    "CORSCredentials": true
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "tools": {
+    "workItemSearch": {
+      "enabled": true,
+      "agentAssignment": "search",
+      "description": "Search and query Azure DevOps work items"
+    },
+    "workItemWrite": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Create and update Azure DevOps work items"
+    },
+    "analysis": {
+      "enabled": true,
+      "agentAssignment": "analyst",
+      "description": "Analyze requirements, generate test cases, suggest child items"
+    },
+    "project": {
+      "enabled": true,
+      "agentAssignment": "search",
+      "description": "Project-level metadata queries (work item types, etc.)"
+    },
+    "pullRequest": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Create and manage pull requests"
+    },
+    "branch": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Create and manage branches"
+    },
+    "link": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Manage work item links and relations"
+    },
+    "repository": {
+      "enabled": true,
+      "agentAssignment": "search",
+      "description": "Browse repositories and read code files"
+    },
+    "attachment": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Upload file attachments to work items and check file readability"
+    },
+    "relationship": {
+      "enabled": true,
+      "agentAssignment": "writer",
+      "description": "Read parent context and create auto-linked child work items"
+    },
+    "pipeline": {
+      "enabled": true,
+      "agentAssignment": "pipeline",
+      "description": "Pipeline, build, release, variable group, and agent pool operations"
+    },
+    "wiki": {
+      "enabled": true,
+      "agentAssignment": "wiki",
+      "description": "Create, update, and manage Azure DevOps Wiki pages"
+    },
+    "testPlan": {
+      "enabled": true,
+      "agentAssignment": "analyst",
+      "description": "Test plans, test suites, test cases, test runs, and code coverage"
+    },
+    "org": {
+      "enabled": true,
+      "agentAssignment": "search",
+      "description": "Organization-level operations: teams, service connections, work item history, cross-project search"
+    }
+  },
+  "agents": {
+    "search": {
+      "enabled": true,
+      "description": "Specialist agent for finding and querying work items"
+    },
+    "writer": {
+      "enabled": true,
+      "description": "Specialist agent for creating and updating work items"
+    },
+    "analyst": {
+      "enabled": true,
+      "description": "Specialist agent for analyzing requirements, test plans, and generating suggestions"
+    },
+    "pipeline": {
+      "enabled": true,
+      "description": "Specialist agent for CI/CD pipeline, build, and release management"
+    },
+    "wiki": {
+      "enabled": true,
+      "description": "Specialist agent for documentation and wiki page management"
+    }
+  }
+}

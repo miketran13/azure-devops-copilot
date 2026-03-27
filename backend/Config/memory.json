@@ -1,0 +1,11 @@
+{
+  "memory": {
+    "enabled": true,
+    "provider": "localFile",
+    "localFilePath": "./sessions",
+    "connectionStringKey": "AzureWebJobsStorage",
+    "sessionTtlDays": 30,
+    "maxSessionsPerUser": 50,
+    "maxMessagesPerSession": 200
+  }
+}

@@ -1,0 +1,129 @@
+name: Deploy Extension
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read  # required to download artifacts from the triggering CI run
+
+jobs:
+  build-and-publish:
+    name: Package & Publish Extension
+    runs-on: ubuntu-latest
+    # Run when triggered manually, or when CI passed on main
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if extension changed
+        id: check-changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Triggered manually — deploying unconditionally."
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Download the changed-paths artifact from the triggering CI run
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          ARTIFACT=$(gh api "/repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" \
+            --jq '.artifacts[] | select(.name=="changed-paths") | .id' 2>/dev/null || echo "")
+
+          if [ -z "$ARTIFACT" ]; then
+            echo "No change detection artifact found — deploying to be safe."
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          gh api "/repos/${{ github.repository }}/actions/artifacts/$ARTIFACT/zip" > /tmp/changed.zip
+          unzip -p /tmp/changed.zip changed-paths.json > /tmp/changed-paths.json
+          EXTENSION=$(jq -r '.extension' /tmp/changed-paths.json)
+          echo "Extension changed: $EXTENSION"
+          echo "should_deploy=$EXTENSION" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip if no extension changes
+        if: steps.check-changes.outputs.should_deploy != 'true'
+        run: echo "No extension changes detected — skipping deployment."
+
+      - name: Setup Node.js
+        if: steps.check-changes.outputs.should_deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        if: steps.check-changes.outputs.should_deploy == 'true'
+        working-directory: extension
+        run: npm ci
+
+      - name: Install tfx-cli
+        if: steps.check-changes.outputs.should_deploy == 'true'
+        run: npm install -g tfx-cli
+
+      - name: Package extension
+        if: steps.check-changes.outputs.should_deploy == 'true'
+        working-directory: extension
+        env:
+          # Inject the Azure Function URL into the webpack build so the extension
+          # talks to the deployed backend instead of localhost.
+          # Set AZURE_FUNCTION_URL in GitHub Actions variables, e.g.:
+          #   https://devopscopilot-func.azurewebsites.net/api
+          BACKEND_URL: ${{ vars.AZURE_FUNCTION_URL }}
+        run: |
+          # Bump version using pipeline build number, then build so webpack
+          # copies the updated manifest (with new version) into dist/
+          BUILD_BUILDNUMBER="${{ github.run_number }}" node scripts/bump-version.js
+          npm run build
+          cd dist
+          tfx extension create \
+            --manifest-globs azure-devops-extension.json \
+            --output-path .
+
+      - name: Upload VSIX artifact
+        if: steps.check-changes.outputs.should_deploy == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: devops-copilot-extension
+          path: extension/dist/*.vsix
+
+      - name: Publish to Marketplace
+        if: steps.check-changes.outputs.should_deploy == 'true' && github.ref == 'refs/heads/main'
+        working-directory: extension/dist
+        run: |
+          tfx extension publish \
+            --vsix $(ls *.vsix | head -1) \
+            --token ${{ secrets.MARKETPLACE_PAT }}
+        continue-on-error: true # Don't fail the build if marketplace publish fails
+
+      - name: Share extension with organizations
+        # Shares the published (private) extension with one or more Azure DevOps organizations.
+        # Set EXTENSION_SHARE_WITH in GitHub Variables as a comma-separated list of org names.
+        # e.g.  myorg,anotherorg
+        # Set EXTENSION_ID and PUBLISHER_ID as GitHub Variables if they differ from the defaults.
+        if: github.ref == 'refs/heads/main' && vars.EXTENSION_SHARE_WITH != ''
+        run: |
+          PUBLISHER="${{ vars.PUBLISHER_ID || 'MikeDemo' }}"
+          EXTENSION="${{ vars.EXTENSION_ID || 'devops-copilot' }}"
+          TOKEN="${{ secrets.MARKETPLACE_PAT }}"
+          IFS=',' read -ra ORGS <<< "${{ vars.EXTENSION_SHARE_WITH }}"
+
+          for ORG in "${ORGS[@]}"; do
+            ORG="${ORG// /}"  # trim whitespace
+            echo "Sharing extension $PUBLISHER.$EXTENSION with: $ORG"
+            tfx extension share \
+              --publisher "$PUBLISHER" \
+              --extension-id "$EXTENSION" \
+              --share-with "$ORG" \
+              --token "$TOKEN" && echo "✅ Shared with $ORG" || echo "⚠️ Failed to share with $ORG (may already be shared)"
+          done

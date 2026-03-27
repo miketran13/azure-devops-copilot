@@ -1,0 +1,16 @@
+{
+  "mcpServers": [
+    {
+      "name": "azure-devops",
+      "description": "Azure DevOps MCP server for extended operations",
+      "endpoint": "",
+      "enabled": false,
+      "tools": [
+        "search_code",
+        "get_pull_request_threads",
+        "get_pipeline_yaml",
+        "get_release_definitions"
+      ]
+    }
+  ]
+}

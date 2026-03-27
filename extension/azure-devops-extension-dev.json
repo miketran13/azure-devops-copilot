@@ -1,0 +1,7 @@
+{
+  "id": "devops-copilot-dev",
+  "name": "DevOps Copilot (Dev)",
+  "public": false,
+  "version": "1.5.3231648",
+  "baseUri": "https://localhost:3000"
+}
