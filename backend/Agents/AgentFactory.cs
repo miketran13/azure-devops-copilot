@@ -1,12 +1,9 @@
-using Azure.AI.OpenAI;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using DevOpsCopilot.Models.Configuration;
 using DevOpsCopilot.Services;
 using DevOpsCopilot.Tools;
-using OpenAI;
-using OpenAI.Chat;
 
 namespace DevOpsCopilot.Agents;
 
@@ -63,7 +60,7 @@ public sealed class AgentFactory
     /// Creates the SearchAgent — specialist for finding and querying work items.
     /// </summary>
     public AIAgent CreateSearchAgent(
-        AzureOpenAIClient openAIClient, string deploymentName, AzureDevOpsService devOps,
+        IChatClient chatClient, AzureDevOpsService devOps,
         string? projectName = null, string? organizationUrl = null)
     {
         var tools = GetToolsForAgent("search", devOps);
@@ -72,9 +69,7 @@ public sealed class AgentFactory
 
         _logger.LogInformation("Creating SearchAgent with {ToolCount} tools", tools.Count);
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "SearchAgent",
                 instructions: prompt,
@@ -85,16 +80,14 @@ public sealed class AgentFactory
     /// Creates the WriterAgent — specialist for creating and updating work items.
     /// </summary>
     public AIAgent CreateWriterAgent(
-        AzureOpenAIClient openAIClient, string deploymentName, AzureDevOpsService devOps)
+        IChatClient chatClient, AzureDevOpsService devOps)
     {
         var tools = GetToolsForAgent("writer", devOps);
         var prompt = _promptService.GetAgentPrompt("writer");
 
         _logger.LogInformation("Creating WriterAgent with {ToolCount} tools", tools.Count);
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "WriterAgent",
                 instructions: prompt,
@@ -106,16 +99,14 @@ public sealed class AgentFactory
     /// test cases, and suggesting improvements.
     /// </summary>
     public AIAgent CreateAnalystAgent(
-        AzureOpenAIClient openAIClient, string deploymentName, AzureDevOpsService devOps)
+        IChatClient chatClient, AzureDevOpsService devOps)
     {
         var tools = GetToolsForAgent("analyst", devOps);
         var prompt = _promptService.GetAgentPrompt("analyst");
 
         _logger.LogInformation("Creating AnalystAgent with {ToolCount} tools", tools.Count);
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "AnalystAgent",
                 instructions: prompt,
@@ -127,7 +118,7 @@ public sealed class AgentFactory
     /// and variable group operations.
     /// </summary>
     public AIAgent CreatePipelineAgent(
-        AzureOpenAIClient openAIClient, string deploymentName, AzureDevOpsService devOps,
+        IChatClient chatClient, AzureDevOpsService devOps,
         string? projectName = null, string? organizationUrl = null)
     {
         var tools = GetToolsForAgent("pipeline", devOps);
@@ -136,9 +127,7 @@ public sealed class AgentFactory
 
         _logger.LogInformation("Creating PipelineAgent with {ToolCount} tools", tools.Count);
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "PipelineAgent",
                 instructions: prompt,
@@ -149,7 +138,7 @@ public sealed class AgentFactory
     /// Creates the WikiAgent — specialist for documentation and wiki page management.
     /// </summary>
     public AIAgent CreateWikiAgent(
-        AzureOpenAIClient openAIClient, string deploymentName, AzureDevOpsService devOps,
+        IChatClient chatClient, AzureDevOpsService devOps,
         string? projectName = null, string? organizationUrl = null)
     {
         var tools = GetToolsForAgent("wiki", devOps);
@@ -158,9 +147,7 @@ public sealed class AgentFactory
 
         _logger.LogInformation("Creating WikiAgent with {ToolCount} tools", tools.Count);
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "WikiAgent",
                 instructions: prompt,
@@ -171,7 +158,7 @@ public sealed class AgentFactory
     /// Creates the OrchestratorAgent — coordinates specialist agents based on user intent.
     /// </summary>
     public AIAgent CreateOrchestratorAgent(
-        AzureOpenAIClient openAIClient, string deploymentName,
+        IChatClient chatClient,
         AIAgent searchAgent, AIAgent writerAgent, AIAgent analystAgent,
         AIAgent pipelineAgent, AIAgent wikiAgent,
         string? projectName = null, string? organizationUrl = null)
@@ -181,9 +168,7 @@ public sealed class AgentFactory
 
         _logger.LogInformation("Creating OrchestratorAgent (project: {Project})", projectName ?? "none");
 
-        return openAIClient
-            .GetChatClient(deploymentName)
-            .AsIChatClient()
+        return chatClient
             .AsAIAgent(
                 name: "DevOpsCopilot",
                 instructions: prompt,

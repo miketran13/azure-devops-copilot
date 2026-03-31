@@ -13,23 +13,29 @@ export interface DevOpsContext {
 
 /**
  * Get the current Azure DevOps project and organization context.
+ * Safe to call in standalone mode — returns empty strings when SDK is not initialized.
  */
 export async function getDevOpsContext(): Promise<DevOpsContext> {
-  const host = SDK.getHost();
-  const user = SDK.getUser();
+  try {
+    const host = SDK.getHost();
+    const user = SDK.getUser();
 
-  // The host name is the organization name
-  const organizationUrl = `https://dev.azure.com/${host.name}`;
+    // The host name is the organization name
+    const organizationUrl = `https://dev.azure.com/${host.name}`;
 
-  // Get project context from the page context
-  const projectName = await getProjectName();
+    // Get project context from the page context
+    const projectName = await getProjectName();
 
-  return {
-    projectName,
-    organizationUrl,
-    userName: user.displayName,
-    userId: user.id,
-  };
+    return {
+      projectName,
+      organizationUrl,
+      userName: user.displayName,
+      userId: user.id,
+    };
+  } catch {
+    // SDK not initialized — running outside Azure DevOps (standalone mode)
+    return { projectName: "", organizationUrl: "", userName: "", userId: "" };
+  }
 }
 
 /**
@@ -68,14 +74,24 @@ async function getProjectName(): Promise<string> {
 
 /**
  * Get a user access token for calling Azure DevOps APIs or the backend.
+ * Returns empty string when SDK is not initialized (standalone mode).
  */
 export async function getAccessToken(): Promise<string> {
-  return await SDK.getAccessToken();
+  try {
+    return await SDK.getAccessToken();
+  } catch {
+    return "";
+  }
 }
 
 /**
  * Get the app token (JWT signed with extension certificate) for backend authentication.
+ * Returns empty string when SDK is not initialized (standalone mode).
  */
 export async function getAppToken(): Promise<string> {
-  return await SDK.getAppToken();
+  try {
+    return await SDK.getAppToken();
+  } catch {
+    return "";
+  }
 }

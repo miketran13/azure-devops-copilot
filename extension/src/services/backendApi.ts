@@ -15,6 +15,8 @@ import { getAccessToken, getAppToken, getDevOpsContext } from "./devopsContext";
 const DEFAULT_BACKEND_URL: string = process.env.BACKEND_URL!;
 
 let _backendUrl: string = DEFAULT_BACKEND_URL;
+let _standaloneMode = false;
+let _githubToken = "";
 
 /**
  * Configure the backend API URL.
@@ -31,6 +33,48 @@ export function getBackendUrl(): string {
 }
 
 /**
+ * Enable standalone mode — uses GitHub PAT instead of Azure DevOps auth.
+ */
+export function setStandaloneMode(
+  enabled: boolean,
+  githubToken?: string,
+): void {
+  _standaloneMode = enabled;
+  _githubToken = githubToken ?? "";
+}
+
+/**
+ * Build auth headers depending on current mode.
+ */
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (_standaloneMode) {
+    return { "X-GitHub-Token": _githubToken };
+  }
+  const accessToken = await getAccessToken();
+  const appToken = await getAppToken();
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    "X-Extension-Token": appToken,
+  };
+}
+
+/**
+ * Get project context depending on current mode.
+ */
+async function getContext(): Promise<{
+  projectName: string;
+  organizationUrl: string;
+}> {
+  if (_standaloneMode) {
+    // In standalone mode, read from localStorage via standaloneContext
+    const { getStandaloneSettings } = await import("./standaloneContext");
+    const s = getStandaloneSettings();
+    return { projectName: s.projectName, organizationUrl: s.adoOrgUrl };
+  }
+  return getDevOpsContext();
+}
+
+/**
  * Send a chat message to the backend and get a response.
  */
 export async function chat(
@@ -38,9 +82,8 @@ export async function chat(
   conversationHistory?: { role: "user" | "assistant"; content: string }[],
   modelId?: string,
 ): Promise<ChatResponse> {
-  const context = await getDevOpsContext();
-  const accessToken = await getAccessToken();
-  const appToken = await getAppToken();
+  const context = await getContext();
+  const authHeaders = await getAuthHeaders();
 
   const request: ChatRequest = {
     message,
@@ -54,8 +97,7 @@ export async function chat(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-Extension-Token": appToken,
+      ...authHeaders,
     },
     body: JSON.stringify(request),
   });
@@ -86,9 +128,8 @@ export async function chatStream(
   },
   signal?: AbortSignal,
 ): Promise<void> {
-  const context = await getDevOpsContext();
-  const accessToken = await getAccessToken();
-  const appToken = await getAppToken();
+  const context = await getContext();
+  const authHeaders = await getAuthHeaders();
 
   const request: ChatRequest = {
     message,
@@ -103,8 +144,7 @@ export async function chatStream(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-Extension-Token": appToken,
+      ...authHeaders,
     },
     body: JSON.stringify(request),
     signal,
