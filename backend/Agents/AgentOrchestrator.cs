@@ -1,5 +1,3 @@
-using Azure.AI.OpenAI;
-using Azure.Identity;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -10,7 +8,6 @@ using System.Text.RegularExpressions;
 using DevOpsCopilot.Models;
 using DevOpsCopilot.Models.Configuration;
 using DevOpsCopilot.Services;
-using OpenAI.Chat;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace DevOpsCopilot.Agents;
@@ -28,6 +25,7 @@ public sealed class AgentOrchestrator
     private readonly AzureDevOpsService _devOpsService;
     private readonly AgentFactory _agentFactory;
     private readonly PromptConfigurationService _promptService;
+    private readonly IChatClientProvider _chatClientProvider;
     private readonly ILogger<AgentOrchestrator> _logger;
 
     public AgentOrchestrator(
@@ -36,6 +34,7 @@ public sealed class AgentOrchestrator
         AzureDevOpsService devOpsService,
         AgentFactory agentFactory,
         PromptConfigurationService promptService,
+        IChatClientProvider chatClientProvider,
         ILogger<AgentOrchestrator> logger)
     {
         _configuration = configuration;
@@ -43,6 +42,7 @@ public sealed class AgentOrchestrator
         _devOpsService = devOpsService;
         _agentFactory = agentFactory;
         _promptService = promptService;
+        _chatClientProvider = chatClientProvider;
         _logger = logger;
     }
 
@@ -82,17 +82,17 @@ public sealed class AgentOrchestrator
     {
         _devOpsService.Initialize(userAccessToken, request.OrganizationUrl);
 
-        var openAIClient = CreateOpenAIClient();
         var deploymentName = ResolveDeploymentName(request.ModelId);
+        var chatClient = _chatClientProvider.GetChatClient(deploymentName);
 
-        var searchAgent = _agentFactory.CreateSearchAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
-        var writerAgent = _agentFactory.CreateWriterAgent(openAIClient, deploymentName, _devOpsService);
-        var analystAgent = _agentFactory.CreateAnalystAgent(openAIClient, deploymentName, _devOpsService);
-        var pipelineAgent = _agentFactory.CreatePipelineAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
-        var wikiAgent = _agentFactory.CreateWikiAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var searchAgent = _agentFactory.CreateSearchAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var writerAgent = _agentFactory.CreateWriterAgent(chatClient, _devOpsService);
+        var analystAgent = _agentFactory.CreateAnalystAgent(chatClient, _devOpsService);
+        var pipelineAgent = _agentFactory.CreatePipelineAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var wikiAgent = _agentFactory.CreateWikiAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
 
         var orchestrator = _agentFactory.CreateOrchestratorAgent(
-            openAIClient, deploymentName, searchAgent, writerAgent, analystAgent,
+            chatClient, searchAgent, writerAgent, analystAgent,
             pipelineAgent, wikiAgent, request.ProjectName, request.OrganizationUrl);
 
         _logger.LogInformation("Processing message through orchestrator (model: {Deployment}, project: {Project})",
@@ -178,8 +178,8 @@ public sealed class AgentOrchestrator
     {
         _devOpsService.Initialize(userAccessToken, request.OrganizationUrl);
 
-        var openAIClient = CreateOpenAIClient();
         var deploymentName = ResolveDeploymentName(request.ModelId);
+        var chatClient = _chatClientProvider.GetChatClient(deploymentName);
 
         // Step 1: Building agents
         yield return new StreamEvent
@@ -189,14 +189,14 @@ public sealed class AgentOrchestrator
             Content = "Setting up..."
         };
 
-        var searchAgent = _agentFactory.CreateSearchAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
-        var writerAgent = _agentFactory.CreateWriterAgent(openAIClient, deploymentName, _devOpsService);
-        var analystAgent = _agentFactory.CreateAnalystAgent(openAIClient, deploymentName, _devOpsService);
-        var pipelineAgent = _agentFactory.CreatePipelineAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
-        var wikiAgent = _agentFactory.CreateWikiAgent(openAIClient, deploymentName, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var searchAgent = _agentFactory.CreateSearchAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var writerAgent = _agentFactory.CreateWriterAgent(chatClient, _devOpsService);
+        var analystAgent = _agentFactory.CreateAnalystAgent(chatClient, _devOpsService);
+        var pipelineAgent = _agentFactory.CreatePipelineAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
+        var wikiAgent = _agentFactory.CreateWikiAgent(chatClient, _devOpsService, request.ProjectName, request.OrganizationUrl);
 
         var orchestrator = _agentFactory.CreateOrchestratorAgent(
-            openAIClient, deploymentName, searchAgent, writerAgent, analystAgent,
+            chatClient, searchAgent, writerAgent, analystAgent,
             pipelineAgent, wikiAgent, request.ProjectName, request.OrganizationUrl);
 
         // Step 2: Routing
@@ -350,29 +350,6 @@ public sealed class AgentOrchestrator
         }
 
         yield return new StreamEvent { Type = "done" };
-    }
-
-    private AzureOpenAIClient CreateOpenAIClient()
-    {
-        var endpoint = !string.IsNullOrEmpty(_openAIConfig.Endpoint)
-            ? _openAIConfig.Endpoint
-            : _configuration["AzureOpenAI:Endpoint"]
-              ?? throw new InvalidOperationException("AzureOpenAI:Endpoint not configured.");
-
-        var apiKey = !string.IsNullOrEmpty(_openAIConfig.ApiKey)
-            ? _openAIConfig.ApiKey
-            : _configuration["AzureOpenAI:ApiKey"];
-
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            return new AzureOpenAIClient(
-                new Uri(endpoint),
-                new System.ClientModel.ApiKeyCredential(apiKey));
-        }
-
-        return new AzureOpenAIClient(
-            new Uri(endpoint),
-            new DefaultAzureCredential());
     }
 
     /// <summary>

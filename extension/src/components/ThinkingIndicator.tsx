@@ -13,6 +13,8 @@ import {
   BotSparkleRegular,
 } from "@fluentui/react-icons";
 import type { ProcessingStep } from "../models/types";
+import { useStandaloneTheme } from "../Standalone/themes";
+import { PacManSprite } from "../Standalone/PacManIcons";
 
 export interface ThinkingIndicatorProps {
   steps: ProcessingStep[];
@@ -97,6 +99,7 @@ export function ThinkingIndicator({
   isActive,
 }: ThinkingIndicatorProps): React.ReactElement {
   const styles = useStyles();
+  const isPacMan = useStandaloneTheme() === "pacman";
   const [expanded, setExpanded] = React.useState(true);
 
   // Auto-collapse when done
@@ -125,9 +128,26 @@ export function ThinkingIndicator({
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
       >
-        <BotSparkleRegular fontSize={16} className={styles.headerIcon} />
-        <Text size={200} weight="semibold" className={styles.headerText}>
-          {isActive ? "Copilot is thinking..." : "Copilot finished thinking"}
+        {isPacMan ? (
+          <PacManSprite size={16} animate={isActive} />
+        ) : (
+          <BotSparkleRegular fontSize={16} className={styles.headerIcon} />
+        )}
+        <Text
+          size={200}
+          weight="semibold"
+          className={styles.headerText}
+          style={
+            isPacMan ? { color: "#ffff00", letterSpacing: "1px" } : undefined
+          }
+        >
+          {isPacMan
+            ? isActive
+              ? "GHOST IS THINKING..."
+              : "PAC-MAN ATE IT!"
+            : isActive
+              ? "Copilot is thinking..."
+              : "Copilot finished thinking"}
         </Text>
         {expanded ? (
           <ChevronDownRegular fontSize={12} className={styles.chevron} />
@@ -145,7 +165,11 @@ export function ThinkingIndicator({
             return (
               <div key={step.id} className={className}>
                 {step.status === "active" ? (
-                  <ArrowSyncRegular fontSize={12} className="spin-icon" />
+                  isPacMan ? (
+                    <PacManSprite size={12} animate={true} />
+                  ) : (
+                    <ArrowSyncRegular fontSize={12} className="spin-icon" />
+                  )
                 ) : (
                   <CheckmarkCircleRegular fontSize={12} />
                 )}

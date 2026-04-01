@@ -13,7 +13,9 @@ An open-source Azure DevOps extension that brings AI-powered copilot capabilitie
 - **AI Chat Hub** — Dedicated copilot page under Azure Boards for natural language interaction with your backlog
 - **Work Item AI Panel** — Contextual AI assistant on every work item form (analyze requirements, suggest improvements)
 - **Smart Actions** — Right-click context menu and toolbar actions: "Analyze with AI", "Generate Test Cases", "Suggest Child Items"
-- **Multi-Agent Architecture** — Specialist agents (Search, Writer, Analyst) coordinated by an orchestrator for complex tasks
+- **Multi-Agent Architecture** — Specialist agents (Search, Writer, Analyst, Pipeline, Wiki) coordinated by an orchestrator for complex tasks
+- **Dual AI Provider** — Switch between **Azure OpenAI** (default) and **GitHub Models** via a single config setting — no code changes needed
+- **Standalone Web App** — Run without an Azure DevOps extension install: open `standalone/standalone.html`, paste your GitHub PAT, and start chatting
 - **Secure by Design** — Token forwarding, Key Vault secrets, Managed Identity, no credentials stored client-side
 
 ## Architecture
@@ -55,22 +57,29 @@ An open-source Azure DevOps extension that brings AI-powered copilot capabilitie
 
 ## Run Locally
 
+There are two ways to run this project locally:
+
+| Mode                             | AI Provider               | Frontend               | Requires                     |
+| -------------------------------- | ------------------------- | ---------------------- | ---------------------------- |
+| **Azure OpenAI + ADO Extension** | Azure OpenAI              | Azure DevOps Extension | Azure subscription + ADO org |
+| **GitHub Models + Standalone**   | GitHub Models (free tier) | Standalone web page    | GitHub account only          |
+
 Follow these steps to get the full stack running on your machine for development and testing.
 
 ### Prerequisites
 
-| Tool                       | Version | Install                                                                          |
-| -------------------------- | ------- | -------------------------------------------------------------------------------- |
-| .NET SDK                   | 9.0+    | [Download](https://dotnet.microsoft.com/download/dotnet/9.0)                     |
-| Node.js                    | 20+     | [Download](https://nodejs.org/)                                                  |
-| Azure Functions Core Tools | v4      | [Install](https://learn.microsoft.com/azure/azure-functions/functions-run-local) |
-| tfx-cli                    | latest  | `npm install -g tfx-cli`                                                         |
-| Azure CLI                  | latest  | [Install](https://learn.microsoft.com/cli/azure/install-azure-cli)               |
+| Tool                       | Version | Install                                                                                               |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| .NET SDK                   | 9.0+    | [Download](https://dotnet.microsoft.com/download/dotnet/9.0)                                          |
+| Node.js                    | 20+     | [Download](https://nodejs.org/)                                                                       |
+| Azure Functions Core Tools | v4      | [Install](https://learn.microsoft.com/azure/azure-functions/functions-run-local)                      |
+| tfx-cli                    | latest  | `npm install -g tfx-cli` (only needed for ADO extension mode)                                         |
+| Azure CLI                  | latest  | [Install](https://learn.microsoft.com/cli/azure/install-azure-cli) (only needed for Azure deployment) |
 
-You also need:
+Depending on your chosen mode, you also need:
 
-- An **Azure OpenAI** resource with a **GPT-4o** deployment ([create one](https://portal.azure.com/#create/Microsoft.CognitiveServicesOpenAI))
-- An **Azure DevOps** organization for testing ([create one](https://dev.azure.com))
+- **Azure OpenAI + Extension mode:** An [Azure OpenAI resource](https://portal.azure.com/#create/Microsoft.CognitiveServicesOpenAI) with a GPT-4o deployment + an [Azure DevOps organization](https://dev.azure.com)
+- **GitHub Models + Standalone mode:** A [GitHub Personal Access Token](https://github.com/settings/tokens) with the **`models:read`** scope (no Azure account required)
 
 > **Tip:** Use the included `.devcontainer/` for GitHub Codespaces or VS Code Dev Containers — all tools are pre-installed.
 
@@ -90,19 +99,25 @@ cd backend
 cp local.settings.example.json local.settings.json
 ```
 
-Edit **`local.settings.json`** with your values:
+#### Option A — Azure OpenAI (full ADO extension mode)
+
+Edit **`local.settings.json`** with your Azure OpenAI values:
 
 ```json
 {
     "IsEncrypted": false,
     "Values": {
-        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "AzureWebJobsStorage": "",
         "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "AIProvider": "AzureOpenAI",
+        "AppMode": "AzureDevOps",
         "AzureOpenAI__Endpoint": "https://YOUR-RESOURCE.openai.azure.com/",
-        "AzureOpenAI__DeploymentName": "gpt-4o",
+        "AzureOpenAI__DefaultDeployment": "gpt-4o",
         "AzureOpenAI__ApiKey": "YOUR-AZURE-OPENAI-API-KEY",
         "AzureDevOps__DefaultOrganizationUrl": "https://dev.azure.com/YOUR-ORG",
-        "Extension__SharedSecret": ""
+        "Extension__SharedSecret": "",
+        "Memory__Provider": "localFile",
+        "Memory__LocalFilePath": "./sessions"
     },
     "Host": {
         "CORS": "https://localhost:3000,https://dev.azure.com,https://*.visualstudio.com",
@@ -111,17 +126,63 @@ Edit **`local.settings.json`** with your values:
 }
 ```
 
-> **Important:** The `Host.CORS` section is required for local development — `host.json`'s CORS settings are only applied when deployed to Azure. `func start` reads CORS from `local.settings.json`.
-
 | Setting                               | Description                                                                                                     |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `AIProvider`                          | `"AzureOpenAI"` (default) or `"GitHubModels"`                                                                   |
+| `AppMode`                             | `"AzureDevOps"` (default), `"Standalone"`, or `"Both"`                                                          |
 | `AzureOpenAI__Endpoint`               | Your Azure OpenAI resource endpoint (Azure Portal → your resource → Keys & Endpoint)                            |
-| `AzureOpenAI__DeploymentName`         | The model deployment name (e.g. `gpt-4o`)                                                                       |
+| `AzureOpenAI__DefaultDeployment`      | The model deployment name (e.g. `gpt-4o`)                                                                       |
 | `AzureOpenAI__ApiKey`                 | API key from your Azure OpenAI resource. Leave blank to use `az login` credentials via `DefaultAzureCredential` |
 | `AzureDevOps__DefaultOrganizationUrl` | Your Azure DevOps org URL, e.g. `https://dev.azure.com/myorg`                                                   |
 | `Extension__SharedSecret`             | Leave empty for local dev (disables token validation). Set in production for security                           |
 
-Build and start:
+#### Option B — GitHub Models + Standalone web app (no Azure required)
+
+This mode uses [GitHub Models](https://github.com/marketplace/models) as the AI backend and a standalone web page as the frontend — no Azure subscription or Azure DevOps organization needed.
+
+**1. Create a GitHub PAT**
+
+Go to [GitHub → Settings → Personal Access Tokens (fine-grained)](https://github.com/settings/tokens) and create a token with the **`models:read`** permission (under "GitHub Models").
+
+**2. Configure `local.settings.json`**
+
+Replace the contents with this minimal configuration:
+
+```json
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "AIProvider": "GitHubModels",
+        "AppMode": "Standalone",
+        "GitHubModels__Endpoint": "https://models.github.ai/inference/",
+        "GitHubModels__ApiKey": "",
+        "GitHubModels__DefaultModel": "openai/gpt-4o-mini",
+        "Memory__Provider": "localFile",
+        "Memory__LocalFilePath": "./sessions",
+        "Cors__AllowedOrigins": "https://localhost:3000,http://localhost:3000"
+    },
+    "Host": {
+        "CORS": "https://localhost:3000,http://localhost:3000",
+        "CORSCredentials": true
+    }
+}
+```
+
+> **`GitHubModels__ApiKey`** can be left empty — users enter their own GitHub PAT in the standalone UI's Settings panel (gear icon). Set it here to provide a shared server-side key instead.
+
+| Setting                      | Description                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `AIProvider`                 | Set to `"GitHubModels"`                                                                        |
+| `AppMode`                    | `"Standalone"` — skips Azure DevOps extension token validation entirely                        |
+| `GitHubModels__Endpoint`     | GitHub Models inference endpoint (don't change this)                                           |
+| `GitHubModels__ApiKey`       | Optional server-side GitHub PAT. Leave blank to require users to enter their own PAT in the UI |
+| `GitHubModels__DefaultModel` | Default model name, e.g. `openai/gpt-4o-mini` or `openai/gpt-4o`                               |
+
+> **Rate limit warning:** GitHub Models free tier allows ~10 requests per minute / 50 per day for GPT-4o. Each user message triggers 3–6 internal LLM calls through multi-agent orchestration, so expect ~8–15 usable interactions per day on the free tier. Use `openai/gpt-4o-mini` for higher limits.
+
+Build and start the backend:
 
 ```bash
 dotnet restore
@@ -136,7 +197,28 @@ curl http://localhost:7071/api/health
 # Should return: {"status":"healthy","timestamp":"..."}
 ```
 
-### Step 3 — Build & Sideload the Extension
+### Step 3 — Start the Frontend
+
+#### Option A — Standalone web app (GitHub Models mode)
+
+```bash
+cd extension
+npm install
+npm run dev
+```
+
+Open **`https://localhost:3000/standalone/standalone.html`** in your browser.
+
+1. Accept the self-signed certificate warning (click **Advanced → Proceed**)
+2. Click the **gear icon** (⚙) in the top-right to open Settings
+3. Enter your GitHub PAT and click **Save**
+4. Start chatting — no Azure DevOps account needed
+
+> If you set `GitHubModels__ApiKey` in `local.settings.json`, you can skip entering a PAT in the UI.
+
+#### Option B — Azure DevOps Extension (Sideload)
+
+### Step 4 — Build & Sideload the Extension (ADO mode)
 
 > **Important:** Azure DevOps **Services** (cloud at dev.azure.com) does **not** support uploading extensions from a local file. You must publish through the Visual Studio Marketplace, even for private dev extensions. ("Browse local extensions" only exists on self-hosted Azure DevOps Server.)
 
@@ -209,7 +291,16 @@ This creates `extension/dist/YOUR-PUBLISHER-ID.devops-copilot-dev-1.0.0.vsix`.
     - Go to **Organization Settings** → **Extensions** → **Shared** tab
     - Find **DevOps Copilot (Dev)** and click **Install**
 
-### Step 4 — Use the Extension
+### Step 5 — Use the App
+
+**Standalone mode (GitHub Models):**
+
+- Open `https://localhost:3000/standalone/standalone.html`
+- Enter your GitHub PAT in Settings if prompted
+- Ask anything — e.g. _"Help me write acceptance criteria for a login feature"_
+- With an optional ADO PAT in Settings, DevOps tools (search work items, create stories, etc.) are also available
+
+**ADO extension mode:**
 
 1. Navigate to your Azure DevOps project → **Boards** → **Copilot** (new hub page)
 2. Try natural language queries:
@@ -219,7 +310,7 @@ This creates `extension/dist/YOUR-PUBLISHER-ID.devops-copilot-dev-1.0.0.vsix`.
 3. Open any work item — you'll see a new **AI Copilot** panel in the form
 4. Right-click any work item — you'll see new context menu actions
 
-### Step 5 — Development Workflow
+### Step 6 — Development Workflow
 
 For active development `npm run dev` starts a webpack-dev-server over **HTTPS on port 3000** — the same URL the dev extension loads its iframes from.
 
@@ -252,6 +343,18 @@ dotnet test
 ```
 
 ### Troubleshooting (Local)
+
+**GitHub Models / Standalone mode:**
+
+| Issue                                               | Solution                                                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Chat returns errors after a few messages            | GitHub Models free tier rate limit hit. Wait a minute or switch to `openai/gpt-4o-mini`                          |
+| `No GitHub Models API key configured` backend error | Either set `GitHubModels__ApiKey` in `local.settings.json` or enter your PAT in the standalone UI Settings panel |
+| Standalone page won't load                          | Accept the self-signed cert at `https://localhost:3000` first (click Advanced → Proceed)                         |
+| DevOps tools not working in standalone mode         | Enter an ADO Organization URL + ADO PAT in the Settings panel (both are optional but enable work item access)    |
+| `GitHubModels:ApiKey required` startup error        | Set `AppMode` to `"Standalone"` or `"Both"`, or provide `GitHubModels__ApiKey`                                   |
+
+**Azure OpenAI / ADO Extension mode:**
 
 | Issue                                           | Solution                                                                                                                                                                            |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

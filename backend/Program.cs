@@ -8,6 +8,7 @@ using DevOpsCopilot.Agents;
 using DevOpsCopilot.Models.Configuration;
 using DevOpsCopilot.Services;
 using DevOpsCopilot.Services.Memory;
+using DevOpsCopilot.Services.Providers;
 using DevOpsCopilot.Tools;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -64,6 +65,7 @@ builder.Services.Configure<CustomFieldConfiguration>(builder.Configuration);
 builder.Services.Configure<MemoryConfiguration>(builder.Configuration.GetSection("memory"));
 builder.Services.Configure<McpConfiguration>(builder.Configuration);
 builder.Services.Configure<AzureOpenAIConfiguration>(builder.Configuration.GetSection("AzureOpenAI"));
+builder.Services.Configure<GitHubModelsConfiguration>(builder.Configuration.GetSection("GitHubModels"));
 
 // ─── Caching ───────────────────────────────────────────────────────
 builder.Services.AddMemoryCache();
@@ -78,6 +80,19 @@ builder.Services.AddScoped<AttachmentService>();
 builder.Services.AddScoped<WorkItemRelationshipService>();
 builder.Services.AddScoped<AgentFactory>();
 builder.Services.AddScoped<AgentOrchestrator>();
+
+// ─── AI Client Provider (Azure OpenAI or GitHub Models) ────────────
+var aiProvider = builder.Configuration.GetValue<string>("AIProvider") ?? "AzureOpenAI";
+switch (aiProvider.ToLowerInvariant())
+{
+    case "githubmodels":
+        builder.Services.AddSingleton<IChatClientProvider, GitHubModelsChatClientProvider>();
+        break;
+    case "azureopenai":
+    default:
+        builder.Services.AddSingleton<IChatClientProvider, AzureOpenAIChatClientProvider>();
+        break;
+}
 
 // ─── Tool providers (auto-register all IToolProvider implementations) ──
 var toolProviderTypes = typeof(IToolProvider).Assembly.GetTypes()
@@ -122,17 +137,36 @@ var host = builder.Build();
 // app from starting in a broken state and producing confusing errors.
 var config = host.Services.GetRequiredService<IConfiguration>();
 var startupErrors = new List<string>();
+var activeProvider = config.GetValue<string>("AIProvider") ?? "AzureOpenAI";
+var appMode = config.GetValue<string>("AppMode") ?? "AzureDevOps";
 
-if (string.IsNullOrEmpty(config["AzureOpenAI:Endpoint"]))
-    startupErrors.Add("AzureOpenAI:Endpoint is required. Set it in local.settings.json or Azure App Settings.");
+if (string.Equals(activeProvider, "AzureOpenAI", StringComparison.OrdinalIgnoreCase))
+{
+    if (string.IsNullOrEmpty(config["AzureOpenAI:Endpoint"]))
+        startupErrors.Add("AzureOpenAI:Endpoint is required. Set it in local.settings.json or Azure App Settings.");
 
-if (string.IsNullOrEmpty(config["AzureDevOps:DefaultOrganizationUrl"]))
-    startupErrors.Add("AzureDevOps:DefaultOrganizationUrl is required. Set it in local.settings.json or Azure App Settings.");
+    var hasDeployment = !string.IsNullOrEmpty(config["AzureOpenAI:DefaultDeployment"])
+        || config.GetSection("AzureOpenAI:Models").GetChildren().Any();
+    if (!hasDeployment)
+        startupErrors.Add("No Azure OpenAI model deployment configured. Set AzureOpenAI:DefaultDeployment or AzureOpenAI:Models.");
+}
+else if (string.Equals(activeProvider, "GitHubModels", StringComparison.OrdinalIgnoreCase))
+{
+    // GitHubModels can work without a server-side API key in standalone mode (PAT from frontend).
+    // Only warn if no key AND not in standalone/both mode.
+    var hasKey = !string.IsNullOrEmpty(config["GitHubModels:ApiKey"]);
+    var isStandalone = string.Equals(appMode, "Standalone", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(appMode, "Both", StringComparison.OrdinalIgnoreCase);
+    if (!hasKey && !isStandalone)
+        startupErrors.Add("GitHubModels:ApiKey is required when AIProvider is GitHubModels and AppMode is AzureDevOps.");
+}
 
-var hasDeployment = !string.IsNullOrEmpty(config["AzureOpenAI:DefaultDeployment"])
-    || config.GetSection("AzureOpenAI:Models").GetChildren().Any();
-if (!hasDeployment)
-    startupErrors.Add("No Azure OpenAI model deployment configured. Set AzureOpenAI:DefaultDeployment or AzureOpenAI:Models.");
+// DevOps org URL is only required in AzureDevOps mode
+if (!string.Equals(appMode, "Standalone", StringComparison.OrdinalIgnoreCase))
+{
+    if (string.IsNullOrEmpty(config["AzureDevOps:DefaultOrganizationUrl"]))
+        startupErrors.Add("AzureDevOps:DefaultOrganizationUrl is required. Set it in local.settings.json or Azure App Settings.");
+}
 
 if (startupErrors.Count > 0)
 {

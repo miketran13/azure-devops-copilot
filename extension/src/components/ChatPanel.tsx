@@ -352,6 +352,8 @@ export function ChatPanel(props: ChatPanelProps = {}): React.ReactElement {
 
   // Load available projects and set default from context
   React.useEffect(() => {
+    // In standalone mode, selectedProject is already set via props — skip SDK/ADO calls
+    if (props.selectedProject) return;
     (async () => {
       try {
         const ctx = await getDevOpsContext();
