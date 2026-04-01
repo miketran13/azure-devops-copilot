@@ -1,17 +1,10 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { FluentThemeProvider } from "../providers/FluentThemeProvider";
 import { StandaloneShell } from "./StandaloneShell";
 
 import "./Standalone.scss";
 
-function Standalone(): React.ReactElement {
-  return (
-    <FluentThemeProvider>
-      <StandaloneShell />
-    </FluentThemeProvider>
-  );
-}
-
+// StandaloneShell manages its own FluentProvider so it can swap between themes.
+// The ADO extension pages continue to use FluentThemeProvider independently.
 const root = createRoot(document.getElementById("root")!);
-root.render(<Standalone />);
+root.render(<StandaloneShell />);

@@ -21,6 +21,8 @@ import {
 import { formatMarkdown } from "../utils/formatMarkdown";
 import "../../src/styles/markdown.scss";
 import "./MessageBubble.scss";
+import { useStandaloneTheme } from "../Standalone/themes";
+import { PacManSprite, GhostIcon } from "../Standalone/PacManIcons";
 
 interface MessageBubbleProps {
   role: "user" | "assistant";
@@ -130,6 +132,8 @@ export function MessageBubble({
   onRegenerate,
 }: MessageBubbleProps): React.ReactElement {
   const styles = useStyles();
+  const standaloneTheme = useStandaloneTheme();
+  const isPacMan = standaloneTheme === "pacman";
   const [hovered, setHovered] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [feedback, setFeedback] = React.useState<"up" | "down" | null>(null);
@@ -168,8 +172,22 @@ export function MessageBubble({
                 styles.avatar,
                 role === "user" ? styles.avatarUser : styles.avatarBot,
               )}
+              style={
+                isPacMan
+                  ? {
+                      border: `2px solid ${role === "user" ? "#ffff00" : "#ff0000"}`,
+                      backgroundColor: "#0d0d26",
+                    }
+                  : undefined
+              }
             >
-              {role === "user" ? (
+              {isPacMan ? (
+                role === "user" ? (
+                  <PacManSprite size={12} />
+                ) : (
+                  <GhostIcon size={12} />
+                )
+              ) : role === "user" ? (
                 <PersonRegular fontSize={12} />
               ) : (
                 <BotRegular fontSize={12} />
@@ -180,7 +198,13 @@ export function MessageBubble({
               weight="semibold"
               style={{ textTransform: "uppercase", letterSpacing: "0.5px" }}
             >
-              {role === "user" ? "You" : "Copilot"}
+              {isPacMan
+                ? role === "user"
+                  ? "PAC-MAN"
+                  : "BLINKY"
+                : role === "user"
+                  ? "You"
+                  : "Copilot"}
             </Text>
           </span>
           <Text size={100}>{formattedTime}</Text>

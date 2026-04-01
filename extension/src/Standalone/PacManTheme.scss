@@ -1,0 +1,317 @@
+/* ─────────────────────────────────────────────────────────────
+   Pac-Man Theme — applied when the shell has data-standalone-theme="pacman"
+   All selectors are scoped to [data-standalone-theme="pacman"] to ensure
+   the ADO extension pages and the normal standalone mode are untouched.
+───────────────────────────────────────────────────────────── */
+
+/* Keyframes -------------------------------------------------------- */
+@keyframes pacman-chomp {
+  0%   { clip-path: polygon(100% 50%, 0% 0%, 0% 100%) }
+  50%  { clip-path: polygon(100% 50%, 0% 30%, 0% 70%) }
+  100% { clip-path: polygon(100% 50%, 0% 0%, 0% 100%) }
+}
+
+@keyframes ghost-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes maze-glow {
+  0%, 100% { box-shadow: 0 0 6px rgba(33, 33, 222, 0.35); }
+  50%       { box-shadow: 0 0 14px rgba(33, 33, 222, 0.65); }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+@keyframes score-pop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes scan-line {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Shell ------------------------------------------------------------ */
+[data-standalone-theme="pacman"] {
+  font-family: "Courier New", Courier, monospace;
+  background-color: #0a0a1a;
+  color: #e0e0f0;
+
+  /* CRT scan-line overlay */
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0, 0, 0, 0.04) 3px,
+      rgba(0, 0, 0, 0.04) 4px
+    );
+  }
+
+  /* Header --------------------------------------------------------- */
+  [class*="topHeader"] {
+    background-color: #0a0a1a !important;
+    border-bottom: 2px solid #2121de !important;
+  }
+
+  [class*="headerBrandText"] {
+    color: #ffff00 !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  [class*="headerBrandIcon"] {
+    color: #ffff00 !important;
+  }
+
+  [class*="headerProjectText"] {
+    color: #66d4f0 !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+
+  [class*="headerDivider"] {
+    background-color: #2121de !important;
+  }
+
+  /* Sidebar -------------------------------------------------------- */
+  [class*="sidebar"],
+  aside {
+    background-color: #0a0a1a !important;
+    border-right: 2px solid #2121de !important;
+  }
+
+  /* Session list items */
+  [class*="sessionItem"],
+  [class*="session-item"] {
+    color: #66d4f0 !important;
+    border-bottom: 1px solid #1a1a6e !important;
+
+    &:hover {
+      background-color: #1a1a2e !important;
+    }
+  }
+
+  /* Chat area ------------------------------------------------------- */
+  .chat-panel {
+    background-color: #0a0a1a;
+    position: relative;
+
+    /* Maze grid background */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.12;
+      background-image:
+        linear-gradient(to right, #2121de 1px, transparent 1px),
+        linear-gradient(to bottom, #2121de 1px, transparent 1px);
+      background-size: 24px 24px;
+      background-position: 12px 12px;
+    }
+
+    > * { position: relative; z-index: 1; }
+  }
+
+  .chat-messages {
+    background: transparent;
+    scrollbar-color: #2121de #0a0a1a;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar       { width: 6px; }
+    &::-webkit-scrollbar-track { background: #0a0a1a; }
+    &::-webkit-scrollbar-thumb { background-color: #2121de; border-radius: 3px; }
+  }
+
+  /* Message bubbles ------------------------------------------------- */
+  .message-container {
+    animation: score-pop 0.25s ease-out both;
+  }
+
+  /* User bubble — yellow / black text */
+  [class*="fui-"] {
+    /* Brand background (used by Fluent for user bubbles via tokens) — already set in theme */
+  }
+
+  /* Override the assistant bubble glow */
+  .message-container.message-assistant [class*="bubble"],
+  .message-container.message-assistant > div {
+    animation: maze-glow 3s ease-in-out infinite;
+    border: 1px solid #2121de;
+  }
+
+  /* Typing indicator dots */
+  .typing-indicator span {
+    background-color: #66d4f0 !important;
+    animation: dot-pulse 1s ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: 0.15s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
+  }
+
+  /* Role labels */
+  .message-container .fui-Text--100 {
+    font-family: "Courier New", Courier, monospace !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Input bar ------------------------------------------------------- */
+  [class*="inputBar"],
+  [class*="chat-input"],
+  .chat-input-bar {
+    background-color: #0a0a1a !important;
+    border-top: 2px solid #2121de !important;
+  }
+
+  /* Fluent Textarea / Input inside the chat bar */
+  .fui-Input,
+  .fui-Textarea,
+  textarea,
+  input[type="text"] {
+    background-color: #1a1a2e !important;
+    border-color: #2121de !important;
+    color: #ffff00 !important;
+    font-family: "Courier New", Courier, monospace !important;
+    caret-color: #ffff00;
+
+    &::placeholder {
+      color: #2121de !important;
+    }
+
+    &:focus {
+      border-color: #33b5e5 !important;
+      box-shadow: 0 0 10px rgba(33, 33, 222, 0.4) !important;
+    }
+  }
+
+  /* Dot rail above input */
+  [class*="inputDots"],
+  [class*="dot-rail"] {
+    &::before {
+      content: "";
+      display: block;
+      height: 3px;
+      background: repeating-linear-gradient(
+        to right,
+        #ffb8ae 0px, #ffb8ae 5px,
+        transparent 5px, transparent 12px
+      );
+      opacity: 0.5;
+      margin-bottom: 6px;
+    }
+  }
+
+  /* Send / action buttons */
+  button[class*="send"],
+  button[aria-label*="Send"],
+  .fui-Button[aria-label*="Send"] {
+    background-color: #ffff00 !important;
+    color: #000 !important;
+    border-color: #ffff00 !important;
+
+    &:hover:not(:disabled) {
+      background-color: #ffee00 !important;
+    }
+  }
+
+  /* Suggestion chips */
+  button[class*="suggestion"],
+  button[class*="suggestedAction"] {
+    border-color: #2121de !important;
+    color: #66d4f0 !important;
+    background: transparent !important;
+    font-family: "Courier New", Courier, monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 0.05em;
+
+    &:hover {
+      background-color: #2121de !important;
+      color: #ffff00 !important;
+    }
+  }
+
+  /* Toolbar / model selector --------------------------------------- */
+  [class*="toolbar"],
+  [class*="chatToolbar"] {
+    background-color: #0a0a1a !important;
+    border-bottom: 1px solid #1a1a6e !important;
+  }
+
+  /* Fluent Dropdown options */
+  .fui-Option,
+  .fui-Listbox {
+    background-color: #0d0d26 !important;
+    border-color: #2121de !important;
+    color: #66d4f0 !important;
+
+    &:hover, &[aria-selected="true"] {
+      background-color: #1a1a2e !important;
+      color: #ffff00 !important;
+    }
+  }
+
+  /* Cards (work item cards etc.) ------------------------------------ */
+  .fui-Card {
+    background-color: #1a1a2e !important;
+    border-color: #2121de !important;
+    color: #66d4f0 !important;
+  }
+
+  /* MessageBar (info/warning banners) ------------------------------ */
+  .fui-MessageBar {
+    background-color: #1a1a2e !important;
+    border-color: #2121de !important;
+    color: #66d4f0 !important;
+  }
+
+  /* Dialog / Settings panel ---------------------------------------- */
+  .fui-DialogSurface {
+    background-color: #0d0d26 !important;
+    border: 2px solid #2121de !important;
+    color: #e0e0f0 !important;
+    box-shadow: 0 0 30px rgba(33, 33, 222, 0.5) !important;
+  }
+
+  .fui-DialogTitle {
+    color: #ffff00 !important;
+    font-family: "Courier New", Courier, monospace !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .fui-Label {
+    color: #66d4f0 !important;
+    font-family: "Courier New", Courier, monospace !important;
+  }
+
+  /* Subtle buttons (header gear, etc.) ----------------------------- */
+  .fui-Button[appearance="subtle"],
+  button[class*="subtle"] {
+    color: #66d4f0 !important;
+
+    &:hover {
+      background-color: #1a1a2e !important;
+      color: #ffff00 !important;
+    }
+  }
+
+  /* Spinner -------------------------------------------------------- */
+  .fui-Spinner__indicator {
+    border-color: #2121de transparent transparent transparent !important;
+  }
+}

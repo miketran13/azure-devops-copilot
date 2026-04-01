@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  FluentProvider,
   Text,
   makeStyles,
   tokens,
@@ -7,6 +8,7 @@ import {
   MessageBar,
   MessageBarBody,
   Button,
+  Tooltip,
 } from "@fluentui/react-components";
 import { BotSparkleRegular } from "@fluentui/react-icons";
 import { Sidebar } from "../components/Sidebar";
@@ -18,7 +20,18 @@ import {
 } from "../services/standaloneContext";
 import { setBackendUrl, setStandaloneMode } from "../services/backendApi";
 import { SettingsButton } from "./Settings";
+import {
+  type StandaloneTheme,
+  StandaloneThemeContext,
+  getSavedTheme,
+  saveTheme,
+  getNormalFluentTheme,
+  pacmanFluentTheme,
+} from "./themes";
+import { GhostIcon } from "./PacManIcons";
 import type { ConversationMessage } from "../models/types";
+
+import "./PacManTheme.scss";
 
 const useStyles = makeStyles({
   shell: {
@@ -95,6 +108,17 @@ export function StandaloneShell(): React.ReactElement {
     sessionId: string;
   } | null>(null);
 
+  // Theme ─────────────────────────────────────────────────────────────
+  const [theme, setTheme] = React.useState<StandaloneTheme>(getSavedTheme);
+  const fluentTheme =
+    theme === "pacman" ? pacmanFluentTheme : getNormalFluentTheme();
+
+  const toggleTheme = () => {
+    const next: StandaloneTheme = theme === "pacman" ? "normal" : "pacman";
+    setTheme(next);
+    saveTheme(next);
+  };
+
   // Apply settings on mount and whenever they change
   const applySettings = React.useCallback(() => {
     const s = getStandaloneSettings();
@@ -127,58 +151,96 @@ export function StandaloneShell(): React.ReactElement {
   const settings = getStandaloneSettings();
 
   return (
-    <div className={styles.shell}>
-      {/* Top header */}
-      <div className={styles.topHeader}>
-        <BotSparkleRegular fontSize={20} className={styles.headerBrandIcon} />
-        <Text size={300} weight="semibold" className={styles.headerBrandText}>
-          DevOps Copilot
-        </Text>
-        {settings.projectName && (
-          <>
-            <div className={styles.headerDivider} />
-            <Text size={200} className={styles.headerProjectText}>
-              {settings.projectName}
-            </Text>
-          </>
-        )}
-        <div className={styles.headerSpacer} />
-        <SettingsButton onSaved={handleSettingsSaved} />
-      </div>
-
-      {/* Body */}
-      <div className={styles.body}>
-        {configured ? (
-          <>
-            <Sidebar
-              isCollapsed={sidebar.isCollapsed}
-              onToggleCollapse={sidebar.toggle}
-              onNewChat={handleNewChat}
-              onLoadSession={handleLoadSession}
-              currentSessionId={loadedSession?.sessionId}
-              refreshTrigger={sessionRefreshKey}
-            />
-            <div className={styles.chatArea}>
-              <ChatPanel
-                key={chatKey}
-                loadedSession={loadedSession ?? undefined}
-                selectedProject={settings.projectName}
-                showToolbar={false}
-                onSessionCreated={() => setSessionRefreshKey((k) => k + 1)}
+    <FluentProvider theme={fluentTheme} style={{ height: "100%" }}>
+      <StandaloneThemeContext.Provider value={theme}>
+        <div className={styles.shell} data-standalone-theme={theme}>
+          {/* Top header */}
+          <div className={styles.topHeader}>
+            {theme === "pacman" ? (
+              <GhostIcon size={20} />
+            ) : (
+              <BotSparkleRegular
+                fontSize={20}
+                className={styles.headerBrandIcon}
               />
-            </div>
-          </>
-        ) : (
-          <div className={styles.setupBanner}>
-            <MessageBar intent="warning">
-              <MessageBarBody>
-                Configure your GitHub Personal Access Token to get started.
-              </MessageBarBody>
-            </MessageBar>
+            )}
+            <Text
+              size={300}
+              weight="semibold"
+              className={styles.headerBrandText}
+            >
+              DevOps Copilot
+            </Text>
+            {settings.projectName && (
+              <>
+                <div className={styles.headerDivider} />
+                <Text size={200} className={styles.headerProjectText}>
+                  {settings.projectName}
+                </Text>
+              </>
+            )}
+            <div className={styles.headerSpacer} />
+            {/* Theme toggle */}
+            <Tooltip
+              content={
+                theme === "pacman"
+                  ? "Switch to Normal theme"
+                  : "Switch to Pac-Man theme 🎮"
+              }
+              relationship="label"
+            >
+              <Button
+                appearance="subtle"
+                size="small"
+                onClick={toggleTheme}
+                title={theme === "pacman" ? "Normal theme" : "Pac-Man theme"}
+                style={
+                  theme === "pacman"
+                    ? { color: "#ffff00", fontWeight: 700 }
+                    : undefined
+                }
+              >
+                {theme === "pacman" ? "🕹️ PAC-MAN" : "🎨 Theme"}
+              </Button>
+            </Tooltip>
             <SettingsButton onSaved={handleSettingsSaved} />
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Body */}
+          <div className={styles.body}>
+            {configured ? (
+              <>
+                <Sidebar
+                  isCollapsed={sidebar.isCollapsed}
+                  onToggleCollapse={sidebar.toggle}
+                  onNewChat={handleNewChat}
+                  onLoadSession={handleLoadSession}
+                  currentSessionId={loadedSession?.sessionId}
+                  refreshTrigger={sessionRefreshKey}
+                />
+                <div className={styles.chatArea}>
+                  <ChatPanel
+                    key={chatKey}
+                    loadedSession={loadedSession ?? undefined}
+                    selectedProject={settings.projectName}
+                    showToolbar={false}
+                    onSessionCreated={() => setSessionRefreshKey((k) => k + 1)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className={styles.setupBanner}>
+                <MessageBar intent="warning">
+                  <MessageBarBody>
+                    Configure your GitHub Personal Access Token to get started.
+                  </MessageBarBody>
+                </MessageBar>
+                <SettingsButton onSaved={handleSettingsSaved} />
+              </div>
+            )}
+          </div>
+        </div>
+      </StandaloneThemeContext.Provider>
+    </FluentProvider>
   );
 }
