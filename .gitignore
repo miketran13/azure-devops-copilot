@@ -56,3 +56,4 @@ Desktop.ini
 .env.*.local
 appsettings.Development.json
 /docs/private
+backend/nuget.config

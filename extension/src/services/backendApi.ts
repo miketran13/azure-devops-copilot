@@ -46,7 +46,7 @@ export function setStandaloneMode(
 /**
  * Build auth headers depending on current mode.
  */
-async function getAuthHeaders(): Promise<Record<string, string>> {
+export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (_standaloneMode) {
     return { "X-GitHub-Token": _githubToken };
   }

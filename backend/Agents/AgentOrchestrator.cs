@@ -22,6 +22,8 @@ public sealed class AgentOrchestrator
 {
     private readonly IConfiguration _configuration;
     private readonly AzureOpenAIConfiguration _openAIConfig;
+    private readonly GitHubModelsConfiguration _githubConfig;
+    private readonly string _aiProvider;
     private readonly AzureDevOpsService _devOpsService;
     private readonly AgentFactory _agentFactory;
     private readonly PromptConfigurationService _promptService;
@@ -31,6 +33,7 @@ public sealed class AgentOrchestrator
     public AgentOrchestrator(
         IConfiguration configuration,
         IOptions<AzureOpenAIConfiguration> openAIConfig,
+        IOptions<GitHubModelsConfiguration> githubConfig,
         AzureDevOpsService devOpsService,
         AgentFactory agentFactory,
         PromptConfigurationService promptService,
@@ -39,6 +42,8 @@ public sealed class AgentOrchestrator
     {
         _configuration = configuration;
         _openAIConfig = openAIConfig.Value;
+        _githubConfig = githubConfig.Value;
+        _aiProvider = configuration.GetValue<string>("AIProvider") ?? "AzureOpenAI";
         _devOpsService = devOpsService;
         _agentFactory = agentFactory;
         _promptService = promptService;
@@ -51,6 +56,16 @@ public sealed class AgentOrchestrator
     /// </summary>
     private string ResolveDeploymentName(string? modelId)
     {
+        // GitHub Models: the model ID is the deployment name — pass it through directly.
+        if (string.Equals(_aiProvider, "GitHubModels", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrEmpty(modelId))
+                return modelId;
+
+            return _githubConfig.DefaultModel;
+        }
+
+        // Azure OpenAI: look up the deployment name from the models list.
         if (!string.IsNullOrEmpty(modelId))
         {
             var match = _openAIConfig.Models

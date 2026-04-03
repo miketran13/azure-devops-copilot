@@ -1,7 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using DevOpsCopilot.Services;
 using DevOpsCopilot.Services.Memory;
@@ -17,14 +20,17 @@ public sealed class SessionFunction
     private readonly ISessionStore _sessionStore;
     private readonly TokenValidationService _tokenService;
     private readonly ILogger<SessionFunction> _logger;
+    private readonly string _appMode;
 
     public SessionFunction(
         ISessionStore sessionStore,
         TokenValidationService tokenService,
+        IConfiguration configuration,
         ILogger<SessionFunction> logger)
     {
         _sessionStore = sessionStore;
         _tokenService = tokenService;
+        _appMode = configuration.GetValue<string>("AppMode") ?? "AzureDevOps";
         _logger = logger;
     }
 
@@ -146,6 +152,24 @@ public sealed class SessionFunction
 
     private (string? UserId, IActionResult? Error) ValidateAndGetUserId(HttpRequest req)
     {
+        var isStandaloneMode = string.Equals(_appMode, "Standalone", StringComparison.OrdinalIgnoreCase);
+        var isBothMode = string.Equals(_appMode, "Both", StringComparison.OrdinalIgnoreCase);
+
+        var githubToken = req.Headers["X-GitHub-Token"].FirstOrDefault();
+        var hasGithubToken = !string.IsNullOrEmpty(githubToken);
+
+        if (isStandaloneMode || (isBothMode && hasGithubToken))
+        {
+            if (!hasGithubToken)
+                return (null, new UnauthorizedObjectResult(new { error = "Missing X-GitHub-Token header." }));
+
+            // Derive a stable user ID from the hashed GitHub token
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(githubToken!));
+            var userId = Convert.ToHexStringLower(hash[..8]);
+            return (userId, null);
+        }
+
+        // Standard Azure DevOps mode
         var appToken = req.Headers["X-Extension-Token"].FirstOrDefault();
         if (!_tokenService.ValidateAppToken(appToken))
             return (null, new UnauthorizedObjectResult(new { error = "Invalid extension token." }));
@@ -160,13 +184,13 @@ public sealed class SessionFunction
         // Falls back to hashing the bearer token, but bearer tokens rotate hourly
         // which breaks session ownership — so X-User-Id should always be sent.
         var stableUserId = req.Headers["X-User-Id"].FirstOrDefault();
-        var userId = !string.IsNullOrEmpty(stableUserId)
+        var userId2 = !string.IsNullOrEmpty(stableUserId)
             ? stableUserId
             : Convert.ToBase64String(
-                System.Security.Cryptography.SHA256.HashData(
-                    System.Text.Encoding.UTF8.GetBytes(userToken)))[..16];
+                SHA256.HashData(
+                    Encoding.UTF8.GetBytes(userToken)))[..16];
 
-        return (userId, null);
+        return (userId2, null);
     }
 
     // Case-insensitive options so camelCase JSON from the frontend maps correctly

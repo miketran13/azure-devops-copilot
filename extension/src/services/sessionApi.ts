@@ -1,6 +1,6 @@
 import type { SessionInfo } from "../models/types";
-import { getAccessToken, getAppToken, getDevOpsContext } from "./devopsContext";
-import { getBackendUrl } from "./backendApi";
+import { getDevOpsContext } from "./devopsContext";
+import { getBackendUrl, getAuthHeaders } from "./backendApi";
 
 /**
  * Session API client — CRUD operations for persistent chat sessions.
@@ -8,14 +8,12 @@ import { getBackendUrl } from "./backendApi";
  */
 
 async function headers(): Promise<Record<string, string>> {
-  const accessToken = await getAccessToken();
-  const appToken = await getAppToken();
+  const authHeaders = await getAuthHeaders();
   const { userId } = await getDevOpsContext();
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
-    "X-Extension-Token": appToken,
-    "X-User-Id": userId,
+    ...authHeaders,
+    ...(userId ? { "X-User-Id": userId } : {}),
   };
 }
 

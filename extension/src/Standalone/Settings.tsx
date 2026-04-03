@@ -11,6 +11,8 @@ import {
   Input,
   Label,
   Field,
+  Dropdown,
+  Option,
   makeStyles,
   shorthands,
   tokens,
@@ -24,6 +26,7 @@ import {
   saveStandaloneSettings,
   type StandaloneSettings,
 } from "../services/standaloneContext";
+import type { ModelInfo } from "../models/types";
 
 const useStyles = makeStyles({
   form: {
@@ -69,14 +72,25 @@ export function Settings({
     ok: boolean;
     message: string;
   } | null>(null);
+  const [availableModels, setAvailableModels] = React.useState<ModelInfo[]>([]);
 
-  // Reload settings when dialog opens
+  // Reload settings and available models when dialog opens
   React.useEffect(() => {
     if (open) {
       setSettings(getStandaloneSettings());
       setTestResult(null);
     }
   }, [open]);
+
+  // Fetch models whenever the backend URL changes (and we have one)
+  React.useEffect(() => {
+    if (!settings.backendUrl) return;
+    const url = settings.backendUrl.replace(/\/$/, "");
+    fetch(`${url}/models`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: ModelInfo[]) => setAvailableModels(data))
+      .catch(() => setAvailableModels([]));
+  }, [settings.backendUrl]);
 
   const update = (field: keyof StandaloneSettings, value: string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -134,6 +148,39 @@ export function Settings({
                     onChange={(_e, data) => update("githubToken", data.value)}
                     placeholder="ghp_..."
                   />
+                </Field>
+                <Field label="Default Model">
+                  {availableModels.length > 0 ? (
+                    <Dropdown
+                      value={
+                        availableModels.find(
+                          (m) => m.id === settings.preferredModel,
+                        )?.displayName ??
+                        availableModels.find((m) => m.isDefault)?.displayName ??
+                        "Select model"
+                      }
+                      selectedOptions={
+                        settings.preferredModel ? [settings.preferredModel] : []
+                      }
+                      onOptionSelect={(_e, data) =>
+                        update("preferredModel", data.optionValue ?? "")
+                      }
+                    >
+                      {availableModels.map((m) => (
+                        <Option key={m.id} value={m.id}>
+                          {m.displayName}
+                        </Option>
+                      ))}
+                    </Dropdown>
+                  ) : (
+                    <Input
+                      value={settings.preferredModel}
+                      onChange={(_e, data) =>
+                        update("preferredModel", data.value)
+                      }
+                      placeholder="e.g. openai/gpt-4o-mini"
+                    />
+                  )}
                 </Field>
               </div>
 

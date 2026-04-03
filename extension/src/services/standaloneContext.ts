@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   adoOrgUrl: "devops-copilot-ado-org-url",
   adoPat: "devops-copilot-ado-pat",
   projectName: "devops-copilot-project-name",
+  preferredModel: "devops-copilot-preferred-model",
 } as const;
 
 export interface StandaloneSettings {
@@ -17,6 +18,7 @@ export interface StandaloneSettings {
   adoOrgUrl: string;
   adoPat: string;
   projectName: string;
+  preferredModel: string;
 }
 
 export function getStandaloneSettings(): StandaloneSettings {
@@ -28,6 +30,7 @@ export function getStandaloneSettings(): StandaloneSettings {
     adoOrgUrl: localStorage.getItem(STORAGE_KEYS.adoOrgUrl) ?? "",
     adoPat: localStorage.getItem(STORAGE_KEYS.adoPat) ?? "",
     projectName: localStorage.getItem(STORAGE_KEYS.projectName) ?? "",
+    preferredModel: localStorage.getItem(STORAGE_KEYS.preferredModel) ?? "",
   };
 }
 
@@ -37,6 +40,7 @@ export function saveStandaloneSettings(settings: StandaloneSettings): void {
   localStorage.setItem(STORAGE_KEYS.adoOrgUrl, settings.adoOrgUrl);
   localStorage.setItem(STORAGE_KEYS.adoPat, settings.adoPat);
   localStorage.setItem(STORAGE_KEYS.projectName, settings.projectName);
+  localStorage.setItem(STORAGE_KEYS.preferredModel, settings.preferredModel);
 }
 
 /**

@@ -6,6 +6,20 @@ using Microsoft.Extensions.Logging;
 
 namespace DevOpsCopilot.Functions;
 
+file sealed record HealthChecks(
+    string AzureOpenAI,
+    string AzureOpenAIAuth,
+    string AzureDevOps,
+    string ModelDeployment,
+    string ExtensionSecurity);
+
+file sealed record HealthResponse(
+    string Status,
+    DateTime Timestamp,
+    string Version,
+    bool ConfigurationComplete,
+    HealthChecks Checks);
+
 /// <summary>
 /// Health check endpoint for monitoring and deployment validation.
 /// Distinguishes between "host is up" and "AI service is operational".
@@ -48,20 +62,18 @@ public sealed class HealthFunction
         else
             status = "degraded";
 
-        return new OkObjectResult(new
-        {
-            status,
-            timestamp = DateTime.UtcNow,
-            version = typeof(HealthFunction).Assembly.GetName().Version?.ToString() ?? "1.0.0",
-            configurationComplete,
-            checks = new
-            {
-                azureOpenAI = aiReady ? "configured" : "missing",
-                azureOpenAIAuth = hasOpenAIKey ? "api-key" : "default-credential",
-                azureDevOps = devOpsReady ? "configured" : "missing",
-                modelDeployment = hasDeployment ? "configured" : "missing",
-                extensionSecurity = securityConfigured ? "configured" : "disabled (dev mode)",
-            }
-        });
+        return new OkObjectResult(new HealthResponse(
+            Status: status,
+            Timestamp: DateTime.UtcNow,
+            Version: typeof(HealthFunction).Assembly.GetName().Version?.ToString() ?? "1.0.0",
+            ConfigurationComplete: configurationComplete,
+            Checks: new HealthChecks(
+                AzureOpenAI: aiReady ? "configured" : "missing",
+                AzureOpenAIAuth: hasOpenAIKey ? "api-key" : "default-credential",
+                AzureDevOps: devOpsReady ? "configured" : "missing",
+                ModelDeployment: hasDeployment ? "configured" : "missing",
+                ExtensionSecurity: securityConfigured ? "configured" : "disabled (dev mode)"
+            )
+        ));
     }
 }

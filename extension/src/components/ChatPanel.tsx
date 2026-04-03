@@ -33,6 +33,7 @@ import {
   AddRegular,
 } from "@fluentui/react-icons";
 import { chatStream, fetchModels } from "../services/backendApi";
+import { getStandaloneSettings } from "../services/standaloneContext";
 import {
   searchWorkItems as apiSearchWorkItems,
   searchRepositories as apiSearchRepositories,
@@ -338,7 +339,12 @@ export function ChatPanel(props: ChatPanelProps = {}): React.ReactElement {
     fetchModels()
       .then((modelList) => {
         setModels(modelList);
-        const defaultModel = modelList.find((m) => m.isDefault);
+        const preferred = getStandaloneSettings().preferredModel;
+        const preferredMatch = preferred
+          ? modelList.find((m) => m.id === preferred)
+          : undefined;
+        const defaultModel =
+          preferredMatch ?? modelList.find((m) => m.isDefault);
         if (defaultModel) {
           setSelectedModelId(defaultModel.id);
         } else if (modelList.length > 0) {
